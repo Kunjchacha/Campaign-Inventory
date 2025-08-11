@@ -1,0 +1,6 @@
+{
+  "name": "Campaign Inventory Dashboard",
+  "description": "A dashboard to visualize campaign inventory, showing product slot status (booked, on hold, available) with analytics and client booking details, inspired by the Jira Summary Page.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
