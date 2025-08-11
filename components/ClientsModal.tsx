@@ -169,7 +169,7 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
                         <p className="text-slate-500">Please select a start and end date to see clients.</p>
                      ) : Object.keys(clientBookings).length > 0 ? (
                         <div className="space-y-4">
-                           {Object.entries(clientBookings).map(([client, bookings]) => (
+                           {Object.entries(clientBookings).map(([client, bookings]: [string, ClientBooking[]]) => (
                                <div key={client}>
                                    <h4 className="font-semibold text-slate-200">{client}</h4>
                                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-slate-400 text-sm">
