@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { inventoryData, products, brands, statusStyles } from './constants';
-import type { InventoryItem, Status } from './types';
+import type { InventoryItem, Status, DatabaseInventoryItem, CampaignLedgerItem, TableSourceFilter } from './types';
 import { ClientsModal } from './components/ClientsModal';
 import { BrandOverviewCard } from './components/BrandOverviewCard';
 import { ProductDetailCard } from './components/ProductDetailCard';
 import { PieChart } from './components/PieChart';
+import { DatabaseOverviewCard } from './components/DatabaseOverviewCard';
+import { CampaignLedgerCard } from './components/CampaignLedgerCard';
+import { useDatabase } from './hooks/useDatabase';
 
 const formatDateForInput = (date: Date): string => {
     return date.toISOString().split('T')[0];
@@ -14,6 +17,7 @@ export const App = () => {
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState('Overall');
   const [isClientsModalOpen, setClientsModalOpen] = useState(false);
+  const [selectedTableSource, setSelectedTableSource] = useState<string>('All');
 
   // Date filter state
   const [filterStartDate, setFilterStartDate] = useState<string>('');
@@ -21,6 +25,30 @@ export const App = () => {
   const [quickView, setQuickView] = useState('custom');
   const [appliedDateRange, setAppliedDateRange] = useState<{ start: string; end: string } | null>(null);
   const [dateError, setDateError] = useState<string>('');
+
+  // Use the database hook
+  const { inventoryData: databaseInventory, campaignLedger, isLoading, error } = useDatabase();
+
+  // Fetch data on component mount
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       const [inventoryData, ledgerData] = await Promise.all([
+  //         postgresService.fetchInventoryData(),
+  //         postgresService.fetchCampaignLedger()
+  //       ]);
+  //       setDatabaseInventory(inventoryData);
+  //       setCampaignLedger(ledgerData);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   fetchData();
+  // }, []);
 
   const handleApplyDateFilter = useCallback(() => {
     if (!filterStartDate || !filterEndDate) {
@@ -64,7 +92,7 @@ export const App = () => {
             break;
         case 'next_month':
             startDate = new Date(currentYear, currentMonth + 1, 1);
-            endDate = new Date(currentYear, currentMonth + 2, 0);
+            endDate = new Date(currentYear, currentMonth + 1, 2, 0);
             break;
         case 'current_quarter':
             startDate = new Date(currentYear, currentQuarter * 3, 1);
@@ -100,7 +128,80 @@ export const App = () => {
         setFilterEndDate(dateStr);
     }
   };
-  
+
+  // Filter database inventory based on selections
+  const filteredDatabaseInventory = useMemo(() => {
+    let filtered = databaseInventory;
+
+    if (selectedBrand !== 'All') {
+      filtered = filtered.filter(item => item.brand === selectedBrand);
+    }
+
+    if (selectedProduct !== 'Overall') {
+      filtered = filtered.filter(item => item.product === selectedProduct);
+    }
+
+    if (selectedTableSource !== 'All') {
+      filtered = filtered.filter(item => item.table_source === selectedTableSource);
+    }
+
+    if (appliedDateRange) {
+      const { start, end } = appliedDateRange;
+      const rangeStart = new Date(start + 'T00:00:00');
+      const rangeEnd = new Date(end + 'T00:00:00');
+
+      filtered = filtered.filter(item => {
+        const itemStart = new Date(item.start_date + 'T00:00:00');
+        const itemEnd = new Date(item.end_date + 'T00:00:00');
+        return itemStart <= rangeEnd && itemEnd >= rangeStart;
+      });
+    }
+
+    return filtered;
+  }, [databaseInventory, selectedBrand, selectedProduct, selectedTableSource, appliedDateRange]);
+
+  // Calculate database statistics
+  const databaseStats = useMemo(() => {
+    const stats = {
+      totalSlots: filteredDatabaseInventory.length,
+      bookedSlots: filteredDatabaseInventory.filter(item => item.status === 'Booked').length,
+      onHoldSlots: filteredDatabaseInventory.filter(item => item.status === 'On Hold').length,
+      availableSlots: filteredDatabaseInventory.filter(item => item.status === 'Available').length,
+      totalRevenue: filteredDatabaseInventory.reduce((sum, item) => sum + item.revenue, 0)
+    };
+
+    // Create table source filters
+    const tableSources: TableSourceFilter[] = [
+      'aa_inventory',
+      'bob_inventory', 
+      'cfo_inventory',
+      'cz_inventory',
+      'gt_inventory',
+      'hrd_inventory',
+      'sew_inventory'
+    ].map(source => {
+      const count = databaseInventory.filter(item => item.table_source === source).length;
+      return {
+        label: source.replace('_', ' ').toUpperCase(),
+        value: source,
+        count
+      };
+    });
+
+    return { ...stats, tableSources };
+  }, [filteredDatabaseInventory, databaseInventory]);
+
+  // Get available brands and products from database
+  const availableBrands = useMemo(() => {
+    const brands = [...new Set(databaseInventory.map(item => item.brand))];
+    return brands.sort();
+  }, [databaseInventory]);
+
+  const availableProducts = useMemo(() => {
+    const products = [...new Set(databaseInventory.map(item => item.product))];
+    return products.sort();
+  }, [databaseInventory]);
+
   const dateFilteredInventory = useMemo(() => {
     if (!appliedDateRange) {
         return inventoryData;
@@ -156,7 +257,6 @@ export const App = () => {
     return stats;
   }, [selectedProduct, selectedBrand, dateFilteredInventory]);
 
-
   const chartData = useMemo(() => [
       { name: 'Booked' as Status, value: filteredStats.booked, color: statusStyles.Booked.colorHex },
       { name: 'On Hold' as Status, value: filteredStats.onHold, color: statusStyles['On Hold'].colorHex },
@@ -165,11 +265,33 @@ export const App = () => {
 
   const isOverallView = selectedProduct === 'Overall';
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading database data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 text-xl mb-4">Error loading data</div>
+          <p className="text-slate-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         <header className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h1 className="text-3xl font-bold text-slate-100">Campaign Inventory</h1>
+          <h1 className="text-3xl font-bold text-slate-100">Campaign Inventory Dashboard</h1>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setClientsModalOpen(true)}
@@ -179,6 +301,53 @@ export const App = () => {
             </button>
           </div>
         </header>
+
+        {/* Database Overview Section */}
+        <section className="mb-8">
+          <h2 className="text-xl font-bold text-slate-100 mb-4">Database Tables Overview</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            {databaseStats.tableSources.map((tableSource) => (
+              <DatabaseOverviewCard
+                key={tableSource.value}
+                tableSource={tableSource}
+                isSelected={selectedTableSource === tableSource.value}
+                onClick={() => setSelectedTableSource(selectedTableSource === tableSource.value ? 'All' : tableSource.value)}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Campaign Ledger Section */}
+        <section className="mb-8">
+          <CampaignLedgerCard campaigns={campaignLedger} />
+        </section>
+
+        {/* Database Statistics */}
+        <section className="mb-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+          <h2 className="text-lg font-semibold text-slate-100 mb-4">Database Statistics</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-400">{databaseStats.totalSlots}</div>
+              <div className="text-sm text-slate-400">Total Slots</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-400">{databaseStats.bookedSlots}</div>
+              <div className="text-sm text-slate-400">Booked</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-400">{databaseStats.onHoldSlots}</div>
+              <div className="text-sm text-slate-400">On Hold</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-400">{databaseStats.availableSlots}</div>
+              <div className="text-sm text-slate-400">Available</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-400">£{databaseStats.totalRevenue.toLocaleString()}</div>
+              <div className="text-sm text-slate-400">Total Revenue</div>
+            </div>
+          </div>
+        </section>
 
         {/* --- Unified Filters --- */}
         <section className="mb-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
@@ -212,7 +381,7 @@ export const App = () => {
                         className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="Overall">Overall</option>
-                        {products.map(p => <option key={p} value={p}>{p}</option>)}
+                        {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                 </div>
                 
@@ -226,7 +395,21 @@ export const App = () => {
                         className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="All">All Brands</option>
-                        {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                        {availableBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                </div>
+
+                {/* Table Source Filter */}
+                <div className="flex-grow" style={{minWidth: '150px'}}>
+                    <label htmlFor="table-source-filter" className="block text-xs font-medium text-slate-400 mb-1">Table Source</label>
+                    <select 
+                        id="table-source-filter"
+                        value={selectedTableSource}
+                        onChange={(e) => setSelectedTableSource(e.target.value)}
+                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="All">All Tables</option>
+                        {databaseStats.tableSources.map(ts => <option key={ts.value} value={ts.value}>{ts.label}</option>)}
                     </select>
                 </div>
                 
