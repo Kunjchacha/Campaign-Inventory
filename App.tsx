@@ -6,7 +6,6 @@ import { BrandOverviewCard } from './components/BrandOverviewCard';
 import { ProductDetailCard } from './components/ProductDetailCard';
 import { PieChart } from './components/PieChart';
 import { DatabaseOverviewCard } from './components/DatabaseOverviewCard';
-import { CampaignLedgerCard } from './components/CampaignLedgerCard';
 import { useDatabase } from './hooks/useDatabase';
 
 const formatDateForInput = (date: Date): string => {
@@ -27,7 +26,7 @@ export const App = () => {
   const [dateError, setDateError] = useState<string>('');
 
   // Use the database hook
-  const { inventoryData: databaseInventory, campaignLedger, isLoading, error } = useDatabase();
+  const { inventoryData: databaseInventory, isLoading, error } = useDatabase();
 
   // Fetch data on component mount
   // useEffect(() => {
@@ -314,11 +313,6 @@ export const App = () => {
               />
             ))}
           </div>
-        </section>
-
-        {/* Campaign Ledger Section */}
-        <section className="mb-8">
-          <CampaignLedgerCard campaigns={campaignLedger} />
         </section>
 
         {/* Database Statistics */}
