@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { inventoryData, products, brands, statusStyles } from './constants';
 import type { InventoryItem, Status, DatabaseInventoryItem, CampaignLedgerItem, TableSourceFilter } from './types';
 import { ClientsModal } from './components/ClientsModal';
@@ -6,6 +6,7 @@ import { BrandOverviewCard } from './components/BrandOverviewCard';
 import { ProductDetailCard } from './components/ProductDetailCard';
 import { PieChart } from './components/PieChart';
 import { DatabaseOverviewCard } from './components/DatabaseOverviewCard';
+import { ClientModal } from './components/ClientModal';
 import { useDatabase } from './hooks/useDatabase';
 
 const formatDateForInput = (date: Date): string => {
@@ -26,29 +27,16 @@ export const App = () => {
   const [dateError, setDateError] = useState<string>('');
 
   // Use the database hook
-  const { inventoryData: databaseInventory, isLoading, error } = useDatabase();
+  const { inventoryData: databaseInventory, campaignLedger, isLoading, error } = useDatabase();
 
   // Fetch data on component mount
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       setIsLoading(true);
-  //       const [inventoryData, ledgerData] = await Promise.all([
-  //         postgresService.fetchInventoryData(),
-  //         postgresService.fetchCampaignLedger()
-  //       ]);
-  //       setDatabaseInventory(inventoryData);
-  //       setCampaignLedger(ledgerData);
-  //     } catch (error) {
-  //       console.error('Error fetching data:', error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
+  useEffect(() => {
+    // This will be handled by the useDatabase hook
+  }, []);
 
-  //   fetchData();
-  // }, []);
-
+  // Client modal state
+  const [isClientModalOpen, setClientModalOpen] = useState(false);
+  
   const handleApplyDateFilter = useCallback(() => {
     if (!filterStartDate || !filterEndDate) {
       setDateError('Please select both a start and end date.');
@@ -286,20 +274,26 @@ export const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h1 className="text-3xl font-bold text-slate-100">Campaign Inventory Dashboard</h1>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setClientsModalOpen(true)}
-              className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm border border-slate-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /></svg>
-                Clients
+    <div className="min-h-screen bg-slate-900 text-slate-100">
+      {/* Header */}
+      <header className="bg-slate-800 border-b border-slate-700 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-100">Campaign Inventory Dashboard</h1>
+              <p className="text-slate-400">Track slot availability across all brands and products</p>
+            </div>
+            <button
+              onClick={() => setClientModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            >
+              📋 View Clients
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
         {/* Database Overview Section */}
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-100 mb-4">Database Tables Overview</h2>
@@ -482,9 +476,19 @@ export const App = () => {
         )}
       </div>
 
+      {/* Modals */}
       <ClientsModal 
         isOpen={isClientsModalOpen} 
         onClose={() => setClientsModalOpen(false)} 
+      />
+      
+      <ClientModal
+        isOpen={isClientModalOpen}
+        onClose={() => setClientModalOpen(false)}
+        campaigns={campaignLedger}
+        selectedBrand={selectedBrand}
+        selectedProduct={selectedProduct}
+        appliedDateRange={appliedDateRange}
       />
     </div>
   );

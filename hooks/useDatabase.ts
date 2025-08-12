@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { DatabaseInventoryItem } from '../types';
+import type { DatabaseInventoryItem, CampaignLedgerItem } from '../types';
 
 // Mock MCP functions for now - these would be replaced with actual MCP calls
 const mockMCPQuery = async (sql: string): Promise<any> => {
@@ -27,6 +27,7 @@ const mockMCPQuery = async (sql: string): Promise<any> => {
 
 export const useDatabase = () => {
   const [inventoryData, setInventoryData] = useState<DatabaseInventoryItem[]>([]);
+  const [campaignLedger, setCampaignLedger] = useState<CampaignLedgerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -163,15 +164,81 @@ export const useDatabase = () => {
     }
   }, []);
 
+  const fetchCampaignLedger = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Mock campaign ledger data for client information
+      const mockLedger: CampaignLedgerItem[] = [
+        {
+          id: 1,
+          campaign_name: 'Q1 Press Release Campaign',
+          client: 'Client 1',
+          product: 'Press Release',
+          brand: 'AA',
+          start_date: '2024-01-01',
+          end_date: '2024-03-31',
+          status: 'Active'
+        },
+        {
+          id: 2,
+          campaign_name: 'Q1 Newsletter Campaign',
+          client: 'Client 2',
+          product: 'Newsletter Lead Sponsor',
+          brand: 'CFO',
+          start_date: '2024-01-01',
+          end_date: '2024-03-31',
+          status: 'Active'
+        },
+        {
+          id: 3,
+          campaign_name: 'Q1 Content Production',
+          client: 'Client 3',
+          product: 'Original Content Production',
+          brand: 'GT',
+          start_date: '2024-01-01',
+          end_date: '2024-03-31',
+          status: 'Active'
+        },
+        {
+          id: 4,
+          campaign_name: 'Q1 Event Coverage',
+          client: 'Client 4',
+          product: 'NIAB Event Cover',
+          brand: 'HRD',
+          start_date: '2024-01-01',
+          end_date: '2024-03-31',
+          status: 'Active'
+        }
+      ];
+
+      setCampaignLedger(mockLedger);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch campaign ledger');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    await Promise.all([
+      fetchInventoryData(),
+      fetchCampaignLedger()
+    ]);
+  }, [fetchInventoryData, fetchCampaignLedger]);
+
   useEffect(() => {
-    fetchInventoryData();
-  }, [fetchInventoryData]);
+    fetchData();
+  }, [fetchData]);
 
   return {
     inventoryData,
+    campaignLedger,
     isLoading,
     error,
-    refetch: fetchInventoryData,
-    fetchInventoryData
+    refetch: fetchData,
+    fetchInventoryData,
+    fetchCampaignLedger
   };
 };
