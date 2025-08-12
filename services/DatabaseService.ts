@@ -5,7 +5,6 @@ export interface DatabaseInventoryItem {
   status: string;
   start_date: string;
   end_date: string;
-  revenue: number;
   product: string;
   brand: string;
   table_source: string;
@@ -19,7 +18,6 @@ export interface CampaignLedgerItem {
   brand: string;
   start_date: string;
   end_date: string;
-  revenue: number;
   status: string;
 }
 
@@ -50,7 +48,6 @@ export class DatabaseService {
           status: 'Booked',
           start_date: '2024-01-01',
           end_date: '2024-01-07',
-          revenue: 2500,
           product: 'Press Release',
           brand: 'AA',
           table_source: 'aa_inventory'
@@ -62,7 +59,6 @@ export class DatabaseService {
           status: 'On Hold',
           start_date: '2024-01-08',
           end_date: '2024-01-14',
-          revenue: 3000,
           product: 'Press Release',
           brand: 'CFO',
           table_source: 'cfo_inventory'
@@ -74,7 +70,6 @@ export class DatabaseService {
           status: 'Available',
           start_date: '2024-01-15',
           end_date: '2024-01-21',
-          revenue: 0,
           product: 'Press Release',
           brand: 'GT',
           table_source: 'gt_inventory'
@@ -100,7 +95,6 @@ export class DatabaseService {
           brand: 'AA',
           start_date: '2024-01-01',
           end_date: '2024-03-31',
-          revenue: 25000,
           status: 'Active'
         },
         {
@@ -111,7 +105,6 @@ export class DatabaseService {
           brand: 'CFO',
           start_date: '2024-01-01',
           end_date: '2024-03-31',
-          revenue: 15000,
           status: 'Active'
         }
       ];

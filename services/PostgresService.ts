@@ -7,7 +7,6 @@ export interface PostgresInventoryItem {
   status: string;
   start_date: string;
   end_date: string;
-  revenue: number;
   product: string;
   brand: string;
   table_source: string;
@@ -21,7 +20,6 @@ export interface PostgresCampaignLedgerItem {
   brand: string;
   start_date: string;
   end_date: string;
-  revenue: number;
   status: string;
 }
 
@@ -54,7 +52,6 @@ export class PostgresService {
           status: 'Booked',
           start_date: '2024-01-01',
           end_date: '2024-01-07',
-          revenue: 2500,
           product: 'Press Release',
           brand: 'AA',
           table_source: 'aa_inventory'
@@ -66,7 +63,6 @@ export class PostgresService {
           status: 'On Hold',
           start_date: '2024-01-08',
           end_date: '2024-01-14',
-          revenue: 3000,
           product: 'Press Release',
           brand: 'CFO',
           table_source: 'cfo_inventory'
@@ -78,7 +74,6 @@ export class PostgresService {
           status: 'Available',
           start_date: '2024-01-15',
           end_date: '2024-01-21',
-          revenue: 0,
           product: 'Press Release',
           brand: 'GT',
           table_source: 'gt_inventory'
@@ -90,7 +85,6 @@ export class PostgresService {
           status: 'Booked',
           start_date: '2024-01-22',
           end_date: '2024-01-28',
-          revenue: 2800,
           product: 'Press Release',
           brand: 'BOB',
           table_source: 'bob_inventory'
@@ -102,7 +96,6 @@ export class PostgresService {
           status: 'Available',
           start_date: '2024-01-29',
           end_date: '2024-02-04',
-          revenue: 0,
           product: 'Press Release',
           brand: 'CZ',
           table_source: 'cz_inventory'
@@ -114,7 +107,6 @@ export class PostgresService {
           status: 'On Hold',
           start_date: '2024-02-05',
           end_date: '2024-02-11',
-          revenue: 3200,
           product: 'Press Release',
           brand: 'HRD',
           table_source: 'hrd_inventory'
@@ -126,7 +118,6 @@ export class PostgresService {
           status: 'Available',
           start_date: '2024-02-12',
           end_date: '2024-02-18',
-          revenue: 0,
           product: 'Press Release',
           brand: 'SEW',
           table_source: 'sew_inventory'
@@ -151,7 +142,6 @@ export class PostgresService {
           brand: 'AA',
           start_date: '2024-01-01',
           end_date: '2024-03-31',
-          revenue: 25000,
           status: 'Active'
         },
         {
@@ -162,7 +152,6 @@ export class PostgresService {
           brand: 'CFO',
           start_date: '2024-01-01',
           end_date: '2024-03-31',
-          revenue: 15000,
           status: 'Active'
         },
         {
@@ -173,7 +162,6 @@ export class PostgresService {
           brand: 'GT',
           start_date: '2024-01-01',
           end_date: '2024-03-31',
-          revenue: 45000,
           status: 'Active'
         }
       ];

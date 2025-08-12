@@ -162,7 +162,6 @@ const generateInventoryData = (): InventoryItem[] => {
           status: status,
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
-          revenue: Math.floor(Math.random() * 4000) + 1000,
           product: config.productName,
           brand: config.brand,
         });

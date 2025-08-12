@@ -166,8 +166,7 @@ export const App = () => {
       totalSlots: filteredDatabaseInventory.length,
       bookedSlots: filteredDatabaseInventory.filter(item => item.status === 'Booked').length,
       onHoldSlots: filteredDatabaseInventory.filter(item => item.status === 'On Hold').length,
-      availableSlots: filteredDatabaseInventory.filter(item => item.status === 'Available').length,
-      totalRevenue: filteredDatabaseInventory.reduce((sum, item) => sum + item.revenue, 0)
+      availableSlots: filteredDatabaseInventory.filter(item => item.status === 'Available').length
     };
 
     // Create table source filters
@@ -325,7 +324,7 @@ export const App = () => {
         {/* Database Statistics */}
         <section className="mb-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
           <h2 className="text-lg font-semibold text-slate-100 mb-4">Database Statistics</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-400">{databaseStats.totalSlots}</div>
               <div className="text-sm text-slate-400">Total Slots</div>
@@ -341,10 +340,6 @@ export const App = () => {
             <div className="text-center">
               <div className="text-2xl font-bold text-slate-400">{databaseStats.availableSlots}</div>
               <div className="text-sm text-slate-400">Available</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">£{databaseStats.totalRevenue.toLocaleString()}</div>
-              <div className="text-sm text-slate-400">Total Revenue</div>
             </div>
           </div>
         </section>

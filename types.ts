@@ -7,7 +7,6 @@ export interface InventoryItem {
   status: Status;
   startDate: string;
   endDate: string;
-  revenue: number;
   product: string;
   brand: string;
 }
@@ -20,7 +19,6 @@ export interface DatabaseInventoryItem {
   status: string;
   start_date: string;
   end_date: string;
-  revenue: number;
   product: string;
   brand: string;
   table_source: string;
@@ -34,7 +32,6 @@ export interface CampaignLedgerItem {
   brand: string;
   start_date: string;
   end_date: string;
-  revenue: number;
   status: string;
 }
 
@@ -49,6 +46,5 @@ export interface DatabaseStats {
   bookedSlots: number;
   onHoldSlots: number;
   availableSlots: number;
-  totalRevenue: number;
   tableSources: TableSourceFilter[];
 }
