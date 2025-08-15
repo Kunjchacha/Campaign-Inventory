@@ -50,9 +50,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+      <div className="bg-slate-800 rounded-lg p-6 max-w-5xl w-full mx-4 max-h-[85vh] overflow-hidden">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-100">Client Overview</h2>
+          <h2 className="text-xl font-bold text-slate-100">👥 Client Information</h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-200 text-2xl font-bold"
@@ -86,29 +86,52 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               No clients found for the current filters
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {Object.entries(clientGroups).map(([clientName, clientCampaigns]) => (
-                <div key={clientName} className="border border-slate-700 rounded-lg p-4">
-                  <h4 className="font-semibold text-slate-200 text-lg mb-3">{clientName}</h4>
+                <div key={clientName} className="border border-slate-700 rounded-lg p-5">
+                  <h4 className="font-bold text-slate-100 text-xl mb-4 border-b border-slate-600 pb-2">
+                    🏢 {clientName}
+                  </h4>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {clientCampaigns.map((campaign) => (
-                      <div key={campaign.id} className="bg-slate-700/30 rounded-lg p-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium text-slate-200">{campaign.campaign_name}</div>
-                            <div className="text-sm text-slate-400">
-                              {campaign.product} • {campaign.brand}
-                            </div>
-                            <div className="text-xs text-slate-500">
+                      <div key={campaign.id} className="bg-slate-700/30 rounded-lg p-4 border border-slate-600">
+                        {/* Three Key Information Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          {/* Product Card */}
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                            <div className="text-xs text-blue-400 font-medium mb-1">📦 PRODUCT</div>
+                            <div className="text-sm font-semibold text-blue-300">{campaign.product}</div>
+                          </div>
+                          
+                          {/* Date Card */}
+                          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                            <div className="text-xs text-green-400 font-medium mb-1">📅 DATE RANGE</div>
+                            <div className="text-sm font-semibold text-green-300">
                               {campaign.start_date} - {campaign.end_date}
                             </div>
                           </div>
+                          
+                          {/* Client Name Card */}
+                          <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
+                            <div className="text-xs text-purple-400 font-medium mb-1">👤 CLIENT</div>
+                            <div className="text-sm font-semibold text-purple-300">{campaign.client}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Additional Campaign Details */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-slate-200 text-lg mb-1">{campaign.campaign_name}</div>
+                            <div className="text-sm text-slate-400">
+                              Brand: {campaign.brand}
+                            </div>
+                          </div>
                           <div className="text-right">
-                            <span className={`text-xs px-2 py-1 rounded ${
+                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                               campaign.status === 'Active'
-                                ? 'bg-green-500/20 text-green-300'
-                                : 'bg-slate-500/20 text-slate-300'
+                                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
                             }`}>
                               {campaign.status}
                             </span>
@@ -118,9 +141,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                     ))}
                   </div>
                   
-                  <div className="mt-3 pt-3 border-t border-slate-600">
+                  <div className="mt-4 pt-4 border-t border-slate-600">
                     <div className="text-sm text-slate-400">
-                      <span className="font-medium">Total Campaigns:</span> {clientCampaigns.length}
+                      <span className="font-medium">Total Campaigns for {clientName}:</span> {clientCampaigns.length}
                     </div>
                   </div>
                 </div>

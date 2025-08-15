@@ -1,164 +1,46 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { DatabaseInventoryItem, CampaignLedgerItem } from '../types';
 
-// Mock MCP functions for now - these would be replaced with actual MCP calls
-const mockMCPQuery = async (sql: string): Promise<any> => {
-  // This is a placeholder - in reality, this would call the actual MCP functions
-  console.log('MCP Query:', sql);
-  
-  // Return mock data based on the query
-  if (sql.includes('aa_inventory')) {
-    return [
-      {
-        id: 1,
-        slot_name: 'PR-AA-Slot1',
-        client: 'Client 1',
-        status: 'Booked',
-        start_date: '2024-01-01',
-        end_date: '2024-01-07',
-        product: 'Press Release',
-        brand: 'AA'
-      }
-    ];
-  }
-  
-  return [];
-};
+// Backend API URL
+const API_BASE_URL = 'http://localhost:5000/api';
+
+
+
+
 
 export const useDatabase = () => {
   const [inventoryData, setInventoryData] = useState<DatabaseInventoryItem[]>([]);
   const [campaignLedger, setCampaignLedger] = useState<CampaignLedgerItem[]>([]);
+  const [brandOverview, setBrandOverview] = useState<{[key: string]: any}>({});
+  const [previewData, setPreviewData] = useState<DatabaseInventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [currentWeekData, setCurrentWeekData] = useState<any[]>([]);
+  const [isLoadingCurrentWeek, setIsLoadingCurrentWeek] = useState(false);
 
   const fetchInventoryData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // In a real implementation, this would use the actual MCP functions
-      // const result = await mcp_postgres_mcp_query({
-      //   sql: "SELECT * FROM campaign_metadata.aa_inventory LIMIT 100"
-      // });
+      console.log('Fetching consolidated inventory data from backend API...');
+      const response = await fetch(`${API_BASE_URL}/inventory`);
       
-      // For now, we'll use mock data that represents the structure
-      const mockData: DatabaseInventoryItem[] = [
-        {
-          id: 1,
-          slot_name: 'PR-AA-Slot1',
-          client: 'Client 1',
-          status: 'Booked',
-          start_date: '2024-01-01',
-          end_date: '2024-01-07',
-          product: 'Press Release',
-          brand: 'AA',
-          table_source: 'aa_inventory'
-        },
-        {
-          id: 2,
-          slot_name: 'PR-CFO-Slot1',
-          client: 'Client 2',
-          status: 'On Hold',
-          start_date: '2024-01-08',
-          end_date: '2024-01-14',
-          product: 'Press Release',
-          brand: 'CFO',
-          table_source: 'cfo_inventory'
-        },
-        {
-          id: 3,
-          slot_name: 'PR-GT-Slot1',
-          client: null,
-          status: 'Available',
-          start_date: '2024-01-15',
-          end_date: '2024-01-21',
-          product: 'Press Release',
-          brand: 'GT',
-          table_source: 'gt_inventory'
-        },
-        {
-          id: 4,
-          slot_name: 'PR-BOB-Slot1',
-          client: 'Client 3',
-          status: 'Booked',
-          start_date: '2024-01-22',
-          end_date: '2024-01-28',
-          product: 'Press Release',
-          brand: 'BOB',
-          table_source: 'bob_inventory'
-        },
-        {
-          id: 5,
-          slot_name: 'PR-CZ-Slot1',
-          client: null,
-          status: 'Available',
-          start_date: '2024-01-29',
-          end_date: '2024-02-04',
-          product: 'Press Release',
-          brand: 'CZ',
-          table_source: 'cz_inventory'
-        },
-        {
-          id: 6,
-          slot_name: 'PR-HRD-Slot1',
-          client: 'Client 4',
-          status: 'On Hold',
-          start_date: '2024-02-05',
-          end_date: '2024-02-11',
-          product: 'Press Release',
-          brand: 'HRD',
-          table_source: 'hrd_inventory'
-        },
-        {
-          id: 7,
-          slot_name: 'PR-SEW-Slot1',
-          client: null,
-          status: 'Available',
-          start_date: '2024-02-12',
-          end_date: '2024-02-18',
-          product: 'Press Release',
-          brand: 'SEW',
-          table_source: 'sew_inventory'
-        },
-        // Add more mock data for different products
-        {
-          id: 8,
-          slot_name: 'NIAB-EC-AA-Slot1',
-          client: 'Client 5',
-          status: 'Booked',
-          start_date: '2024-01-01',
-          end_date: '2024-01-07',
-          product: 'NIAB Event Cover',
-          brand: 'AA',
-          table_source: 'aa_inventory'
-        },
-        {
-          id: 9,
-          slot_name: 'OCP-GT-Slot1',
-          client: 'Client 6',
-          status: 'Booked',
-          start_date: '2024-01-08',
-          end_date: '2024-01-14',
-          product: 'Original Content Production',
-          brand: 'GT',
-          table_source: 'gt_inventory'
-        },
-        {
-          id: 10,
-          slot_name: 'HC-CFO-Slot1',
-          client: null,
-          status: 'Available',
-          start_date: '2024-01-15',
-          end_date: '2024-01-21',
-          product: 'Hosted Content',
-          brand: 'CFO',
-          table_source: 'cfo_inventory'
-        }
-      ];
-
-      setInventoryData(mockData);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Fetched ${data.length} consolidated inventory items from database`);
+      
+      setInventoryData(data);
+      setIsUsingFallback(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch inventory data');
+      console.error('Error fetching consolidated inventory data:', err);
+      setInventoryData([]);
+      setIsUsingFallback(false);
+      setError('Database connection failed');
     } finally {
       setIsLoading(false);
     }
@@ -169,64 +51,124 @@ export const useDatabase = () => {
     setError(null);
     
     try {
-      // Mock campaign ledger data for client information
-      const mockLedger: CampaignLedgerItem[] = [
-        {
-          id: 1,
-          campaign_name: 'Q1 Press Release Campaign',
-          client: 'Client 1',
-          product: 'Press Release',
-          brand: 'AA',
-          start_date: '2024-01-01',
-          end_date: '2024-03-31',
-          status: 'Active'
-        },
-        {
-          id: 2,
-          campaign_name: 'Q1 Newsletter Campaign',
-          client: 'Client 2',
-          product: 'Newsletter Lead Sponsor',
-          brand: 'CFO',
-          start_date: '2024-01-01',
-          end_date: '2024-03-31',
-          status: 'Active'
-        },
-        {
-          id: 3,
-          campaign_name: 'Q1 Content Production',
-          client: 'Client 3',
-          product: 'Original Content Production',
-          brand: 'GT',
-          start_date: '2024-01-01',
-          end_date: '2024-03-31',
-          status: 'Active'
-        },
-        {
-          id: 4,
-          campaign_name: 'Q1 Event Coverage',
-          client: 'Client 4',
-          product: 'NIAB Event Cover',
-          brand: 'HRD',
-          start_date: '2024-01-01',
-          end_date: '2024-03-31',
-          status: 'Active'
-        }
-      ];
-
-      setCampaignLedger(mockLedger);
+      console.log('Fetching campaign ledger from backend API...');
+      const response = await fetch(`${API_BASE_URL}/campaign-ledger`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Fetched ${data.length} campaign ledger items from database`);
+      
+      setCampaignLedger(data);
+      setIsUsingFallback(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch campaign ledger');
+      console.error('Error fetching campaign ledger:', err);
+      setCampaignLedger([]);
+      setIsUsingFallback(false);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const fetchBrandOverview = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching brand overview from backend API...');
+      const response = await fetch(`${API_BASE_URL}/brand-overview`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched brand overview data:', data);
+      
+      setBrandOverview(data);
+      setIsUsingFallback(false);
+    } catch (err) {
+      console.error('Error fetching brand overview:', err);
+      setBrandOverview({});
+      setIsUsingFallback(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchPreviewData = useCallback(async (brand: string, product: string, startDate?: string, endDate?: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching consolidated inventory data from backend API...');
+      const params = new URLSearchParams({
+        brand,
+        product,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate })
+      });
+      
+      // Use the consolidated inventory endpoint instead of preview-data
+      const response = await fetch(`${API_BASE_URL}/inventory?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Fetched ${data.length} consolidated inventory items from database`);
+      
+      setPreviewData(data);
+      setIsUsingFallback(false);
+    } catch (err) {
+      console.error('Error fetching consolidated inventory data:', err);
+      setPreviewData([]);
+      setIsUsingFallback(false);
+      setError('Failed to fetch consolidated inventory data from backend.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchCurrentWeekData = useCallback(async () => {
+    console.log('fetchCurrentWeekData: Starting...');
+    setIsLoadingCurrentWeek(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching current week inventory data...');
+      const response = await fetch(`${API_BASE_URL}/current-week-inventory`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Current week data fetched successfully:', data);
+      console.log('Current week data length:', data.length);
+      setCurrentWeekData(data);
+      console.log('Current week data set in state');
+    } catch (err) {
+      console.error('Error fetching current week data:', err);
+      setCurrentWeekData([]);
+      setError('Failed to fetch current week data');
+    } finally {
+      setIsLoadingCurrentWeek(false);
+      console.log('fetchCurrentWeekData: Completed');
     }
   }, []);
 
   const fetchData = useCallback(async () => {
     await Promise.all([
       fetchInventoryData(),
-      fetchCampaignLedger()
+      fetchCampaignLedger(),
+      fetchBrandOverview(),
+      fetchCurrentWeekData()
     ]);
-  }, [fetchInventoryData, fetchCampaignLedger]);
+  }, [fetchInventoryData, fetchCampaignLedger, fetchBrandOverview, fetchCurrentWeekData]);
 
   useEffect(() => {
     fetchData();
@@ -235,10 +177,18 @@ export const useDatabase = () => {
   return {
     inventoryData,
     campaignLedger,
+    brandOverview,
+    previewData,
+    currentWeekData,
     isLoading,
+    isLoadingCurrentWeek,
     error,
+    isUsingFallback,
     refetch: fetchData,
     fetchInventoryData,
-    fetchCampaignLedger
+    fetchCampaignLedger,
+    fetchBrandOverview,
+    fetchPreviewData,
+    fetchCurrentWeekData
   };
 };

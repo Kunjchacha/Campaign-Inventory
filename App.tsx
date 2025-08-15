@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { inventoryData, products, brands, statusStyles } from './constants';
-import type { InventoryItem, Status, DatabaseInventoryItem, CampaignLedgerItem, TableSourceFilter } from './types';
+import type { InventoryItem, Status, DatabaseInventoryItem, CampaignLedgerItem } from './types';
 import { ClientsModal } from './components/ClientsModal';
 import { BrandOverviewCard } from './components/BrandOverviewCard';
 import { ProductDetailCard } from './components/ProductDetailCard';
 import { PieChart } from './components/PieChart';
-import { DatabaseOverviewCard } from './components/DatabaseOverviewCard';
 import { ClientModal } from './components/ClientModal';
 import { useDatabase } from './hooks/useDatabase';
 
@@ -17,26 +16,31 @@ export const App = () => {
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState('Overall');
   const [isClientsModalOpen, setClientsModalOpen] = useState(false);
-  const [selectedTableSource, setSelectedTableSource] = useState<string>('All');
-
+  const [isClientModalOpen, setClientModalOpen] = useState(false);
+  
   // Date filter state
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
-  const [quickView, setQuickView] = useState('custom');
   const [appliedDateRange, setAppliedDateRange] = useState<{ start: string; end: string } | null>(null);
   const [dateError, setDateError] = useState<string>('');
 
   // Use the database hook
-  const { inventoryData: databaseInventory, campaignLedger, isLoading, error } = useDatabase();
+  const { 
+    inventoryData: databaseInventory, 
+    campaignLedger, 
+    brandOverview, 
+    previewData, 
+    isLoading, 
+    error, 
+    fetchPreviewData
+  } = useDatabase();
 
   // Fetch data on component mount
   useEffect(() => {
-    // This will be handled by the useDatabase hook
-  }, []);
+    // Fetch initial preview data
+    fetchPreviewData(selectedBrand, selectedProduct);
+  }, [fetchPreviewData]);
 
-  // Client modal state
-  const [isClientModalOpen, setClientModalOpen] = useState(false);
-  
   const handleApplyDateFilter = useCallback(() => {
     if (!filterStartDate || !filterEndDate) {
       setDateError('Please select both a start and end date.');
@@ -49,71 +53,26 @@ export const App = () => {
     }
     setDateError('');
     setAppliedDateRange({ start: filterStartDate, end: filterEndDate });
-  }, [filterStartDate, filterEndDate]);
+    
+    // Fetch preview data with current filters
+    fetchPreviewData(selectedBrand, selectedProduct, filterStartDate, filterEndDate);
+  }, [filterStartDate, filterEndDate, selectedBrand, selectedProduct, fetchPreviewData]);
   
   const handleClearDateFilter = useCallback(() => {
       setFilterStartDate('');
       setFilterEndDate('');
       setAppliedDateRange(null);
       setDateError('');
-      setQuickView('custom');
-  }, []);
-
-  const handleQuickViewChange = useCallback((view: string) => {
-    setQuickView(view);
-    
-    if (view === 'custom') return;
-
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date;
-
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-11
-    const currentQuarter = Math.floor(currentMonth / 3); // 0-3
-
-    switch (view) {
-        case 'current_month':
-            startDate = new Date(currentYear, currentMonth, 1);
-            endDate = new Date(currentYear, currentMonth + 1, 0);
-            break;
-        case 'next_month':
-            startDate = new Date(currentYear, currentMonth + 1, 1);
-            endDate = new Date(currentYear, currentMonth + 1, 2, 0);
-            break;
-        case 'current_quarter':
-            startDate = new Date(currentYear, currentQuarter * 3, 1);
-            endDate = new Date(currentYear, currentQuarter * 3 + 3, 0);
-            break;
-        case 'next_quarter':
-            const nextQuarterStartMonth = (currentQuarter * 3 + 3);
-            startDate = new Date(currentYear, nextQuarterStartMonth, 1);
-            endDate = new Date(currentYear, nextQuarterStartMonth + 3, 0);
-            break;
-        case 'current_year':
-            startDate = new Date(currentYear, 0, 1);
-            endDate = new Date(currentYear, 11, 31);
-            break;
-        case 'next_year':
-            startDate = new Date(currentYear + 1, 0, 1);
-            endDate = new Date(currentYear + 1, 11, 31);
-            break;
-        default:
-            return;
-    }
-    
-    setFilterStartDate(formatDateForInput(startDate));
-    setFilterEndDate(formatDateForInput(endDate));
-    setDateError('');
   }, []);
 
   const handleManualDateChange = (dateStr: string, type: 'start' | 'end') => {
-    setQuickView('custom');
     if (type === 'start') {
-        setFilterStartDate(dateStr);
+      setFilterStartDate(dateStr);
     } else {
-        setFilterEndDate(dateStr);
+      setFilterEndDate(dateStr);
     }
+    
+    setDateError('');
   };
 
   // Filter database inventory based on selections
@@ -126,10 +85,6 @@ export const App = () => {
 
     if (selectedProduct !== 'Overall') {
       filtered = filtered.filter(item => item.product === selectedProduct);
-    }
-
-    if (selectedTableSource !== 'All') {
-      filtered = filtered.filter(item => item.table_source === selectedTableSource);
     }
 
     if (appliedDateRange) {
@@ -145,37 +100,7 @@ export const App = () => {
     }
 
     return filtered;
-  }, [databaseInventory, selectedBrand, selectedProduct, selectedTableSource, appliedDateRange]);
-
-  // Calculate database statistics
-  const databaseStats = useMemo(() => {
-    const stats = {
-      totalSlots: filteredDatabaseInventory.length,
-      bookedSlots: filteredDatabaseInventory.filter(item => item.status === 'Booked').length,
-      onHoldSlots: filteredDatabaseInventory.filter(item => item.status === 'On Hold').length,
-      availableSlots: filteredDatabaseInventory.filter(item => item.status === 'Available').length
-    };
-
-    // Create table source filters
-    const tableSources: TableSourceFilter[] = [
-      'aa_inventory',
-      'bob_inventory', 
-      'cfo_inventory',
-      'cz_inventory',
-      'gt_inventory',
-      'hrd_inventory',
-      'sew_inventory'
-    ].map(source => {
-      const count = databaseInventory.filter(item => item.table_source === source).length;
-      return {
-        label: source.replace('_', ' ').toUpperCase(),
-        value: source,
-        count
-      };
-    });
-
-    return { ...stats, tableSources };
-  }, [filteredDatabaseInventory, databaseInventory]);
+  }, [databaseInventory, selectedBrand, selectedProduct, appliedDateRange]);
 
   // Get available brands and products from database
   const availableBrands = useMemo(() => {
@@ -188,50 +113,36 @@ export const App = () => {
     return products.sort();
   }, [databaseInventory]);
 
-  const dateFilteredInventory = useMemo(() => {
-    if (!appliedDateRange) {
-        return inventoryData;
-    }
-    const { start, end } = appliedDateRange;
-    const rangeStart = new Date(start + 'T00:00:00');
-    const rangeEnd = new Date(end + 'T00:00:00');
-
-    if (isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) {
-        return inventoryData;
-    }
-
-    return inventoryData.filter(item => {
-        const itemStart = new Date(item.startDate + 'T00:00:00');
-        const itemEnd = new Date(item.endDate + 'T00:00:00');
-        return itemStart <= rangeEnd && itemEnd >= rangeStart;
-    });
-  }, [appliedDateRange]);
-
-  const brandStats = useMemo(() => {
-    const statsByBrand: Record<string, { booked: number, onHold: number, available: number, total: number }> = {};
-    brands.forEach(brand => {
-        statsByBrand[brand] = { booked: 0, onHold: 0, available: 0, total: 0 };
-    });
-
-    dateFilteredInventory.forEach(item => {
-        if(statsByBrand[item.brand]){
-            statsByBrand[item.brand].total++;
-            if(item.status === 'Booked') statsByBrand[item.brand].booked++;
-            else if(item.status === 'On Hold') statsByBrand[item.brand].onHold++;
-            else if(item.status === 'Available') statsByBrand[item.brand].available++;
-        }
-    });
-    return statsByBrand;
-  }, [dateFilteredInventory]);
-
   const filteredStats = useMemo(() => {
-    let filteredData = dateFilteredInventory;
+    let filteredData = previewData;
 
-    if (selectedProduct !== 'Overall') {
-        filteredData = filteredData.filter(item => item.product === selectedProduct);
-    }
-    if (selectedBrand !== 'All') {
-        filteredData = filteredData.filter(item => item.brand === selectedBrand);
+    // Apply date filtering if date range is set
+    if (appliedDateRange) {
+      const { start, end } = appliedDateRange;
+      const rangeStart = new Date(start + 'T00:00:00');
+      const rangeEnd = new Date(end + 'T00:00:00');
+
+      filteredData = previewData.filter(item => {
+        const dateStr = item.start_date;
+        if (!dateStr) return false;
+        
+        let itemDate: Date | null = null;
+        
+        // Handle different date formats
+        if (typeof dateStr === 'string') {
+          // Format: "Monday, August 11, 2025"
+          if (dateStr.includes(',')) {
+            const datePart = dateStr.split(', ').slice(1).join(', ');
+            itemDate = new Date(datePart);
+          }
+        }
+        
+        if (!itemDate || isNaN(itemDate.getTime())) return false;
+        
+        const isInRange = itemDate >= rangeStart && itemDate <= rangeEnd;
+        
+        return isInRange;
+      });
     }
 
     const stats = {
@@ -241,15 +152,13 @@ export const App = () => {
         total: filteredData.length
     };
     return stats;
-  }, [selectedProduct, selectedBrand, dateFilteredInventory]);
+  }, [previewData, appliedDateRange]);
 
   const chartData = useMemo(() => [
       { name: 'Booked' as Status, value: filteredStats.booked, color: statusStyles.Booked.colorHex },
       { name: 'On Hold' as Status, value: filteredStats.onHold, color: statusStyles['On Hold'].colorHex },
       { name: 'Available' as Status, value: filteredStats.available, color: statusStyles.Available.colorHex },
   ], [filteredStats]);
-
-  const isOverallView = selectedProduct === 'Overall';
 
   if (isLoading) {
     return (
@@ -276,204 +185,254 @@ export const App = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 p-4">
+      <header className="bg-slate-800 border-b border-slate-700 p-3 sm:p-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-100">Campaign Inventory Dashboard</h1>
-              <p className="text-slate-400">Track slot availability across all brands and products</p>
-            </div>
-            <button
-              onClick={() => setClientModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-            >
-              📋 View Clients
-            </button>
+          <div className="text-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-100">📊 Commercial Inventory Dashboard</h1>
+            <p className="text-slate-400 text-sm sm:text-base">Track available slots for booking across all brands and products</p>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
-        {/* Database Overview Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-bold text-slate-100 mb-4">Database Tables Overview</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {databaseStats.tableSources.map((tableSource) => (
-              <DatabaseOverviewCard
-                key={tableSource.value}
-                tableSource={tableSource}
-                isSelected={selectedTableSource === tableSource.value}
-                onClick={() => setSelectedTableSource(selectedTableSource === tableSource.value ? 'All' : tableSource.value)}
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 lg:p-8">
+        {/* Brand Overview Section - Single Graphical View */}
+        <section className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-100 mb-4 sm:mb-6">📈 Brand Overview - Total Inventory</h2>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 sm:p-6">
+            {brands.map(brand => {
+              const brandData = brandOverview[brand];
+              if (!brandData) return null;
+              
+              const booked = brandData.booked || 0;
+              const onHold = brandData.on_hold || 0;
+              const available = brandData.not_booked || 0;
+              const total = brandData.total_slots || 0;
+              
+              const bookedPercent = total > 0 ? (booked / total) * 100 : 0;
+              const onHoldPercent = total > 0 ? (onHold / total) * 100 : 0;
+              const availablePercent = total > 0 ? (available / total) * 100 : 0;
+              
+              return (
+                <div key={brand} className="mb-4 last:mb-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-slate-200">{brand}</h3>
+                    <span className="text-sm text-slate-400">Total: {total} slots</span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full bg-slate-700 rounded-full h-8 relative overflow-hidden">
+                    {/* Booked (Green) */}
+                    <div 
+                      className="h-full bg-green-500 transition-all duration-300 flex items-center justify-center relative"
+                      style={{ width: `${bookedPercent}%` }}
+                    >
+                      {bookedPercent > 10 && (
+                        <span className="text-white text-xs font-medium">
+                          {Math.round(bookedPercent)}%
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* On Hold (Yellow) */}
+                    <div 
+                      className="h-full bg-yellow-500 transition-all duration-300 flex items-center justify-center relative"
+                      style={{ width: `${onHoldPercent}%`, marginLeft: `${bookedPercent}%` }}
+                    >
+                      {onHoldPercent > 10 && (
+                        <span className="text-white text-xs font-medium">
+                          {Math.round(onHoldPercent)}%
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Available (Grey) - remaining space */}
+                    <div 
+                      className="h-full bg-slate-500 transition-all duration-300 flex items-center justify-center relative"
+                      style={{ width: `${availablePercent}%`, marginLeft: `${bookedPercent + onHoldPercent}%` }}
+                    >
+                      {availablePercent > 10 && (
+                        <span className="text-white text-xs font-medium">
+                          {Math.round(availablePercent)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Counts Legend */}
+                  <div className="flex justify-between text-xs text-slate-400 mt-2">
+                    <span>Booked: {booked}</span>
+                    <span>On Hold: {onHold}</span>
+                    <span>Available: {available}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+
+
+        {/* --- Commercial Filters --- */}
+        <section className="mb-6 sm:mb-8 p-3 sm:p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-100">🎯 Filters - Find Available Inventory</h2>
+            <button
+              onClick={() => setClientModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+            >
+              👥 View Clients
+            </button>
+          </div>
+          
+          {/* Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+            {/* Products Dropdown */}
+            <div className="sm:col-span-1">
+              <label htmlFor="product-filter" className="block text-xs font-medium text-slate-400 mb-1">Products</label>
+              <select 
+                id="product-filter"
+                value={selectedProduct}
+                onChange={(e) => {
+                  setSelectedProduct(e.target.value);
+                  // Remove auto-fetch - user will click Apply Filters
+                }}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Overall">Overall</option>
+                {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            
+            {/* Brand Dropdown */}
+            <div className="sm:col-span-1">
+              <label htmlFor="brand-filter" className="block text-xs font-medium text-slate-400 mb-1">Brand</label>
+              <select 
+                id="brand-filter"
+                value={selectedBrand}
+                onChange={(e) => {
+                  setSelectedBrand(e.target.value);
+                  // Remove auto-fetch - user will click Apply Filters
+                }}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="All">All Brands</option>
+                {brands.map(brand => <option key={brand} value={brand}>{brand}</option>)}
+              </select>
+            </div>
+            
+            {/* Date Inputs */}
+            <div className="sm:col-span-1">
+              <label htmlFor="start-date-filter" className="block text-xs font-medium text-slate-400 mb-1">Start Date</label>
+              <input
+                type="date"
+                id="start-date-filter"
+                value={filterStartDate}
+                onChange={e => handleManualDateChange(e.target.value, 'start')}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            ))}
+            </div>
+            <div className="sm:col-span-1">
+              <label htmlFor="end-date-filter" className="block text-xs font-medium text-slate-400 mb-1">End Date</label>
+              <input
+                type="date"
+                id="end-date-filter"
+                value={filterEndDate}
+                onChange={e => handleManualDateChange(e.target.value, 'end')}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <button
+                onClick={() => {
+                  // Fetch data with current brand, product, and date selections
+                  if (filterStartDate && filterEndDate) {
+                    fetchPreviewData(selectedBrand, selectedProduct, filterStartDate, filterEndDate);
+                    handleApplyDateFilter();
+                  } else {
+                    fetchPreviewData(selectedBrand, selectedProduct);
+                  }
+                }}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                Apply Filters
+              </button>
+              {appliedDateRange && (
+                <button
+                  onClick={() => {
+                    handleClearDateFilter();
+                    fetchPreviewData(selectedBrand, selectedProduct);
+                  }}
+                  className="w-full sm:w-auto bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
-        </section>
-
-        {/* Database Statistics */}
-        <section className="mb-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">Database Statistics</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-400">{databaseStats.totalSlots}</div>
-              <div className="text-sm text-slate-400">Total Slots</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{databaseStats.bookedSlots}</div>
-              <div className="text-sm text-slate-400">Booked</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-400">{databaseStats.onHoldSlots}</div>
-              <div className="text-sm text-slate-400">On Hold</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-slate-400">{databaseStats.availableSlots}</div>
-              <div className="text-sm text-slate-400">Available</div>
-            </div>
-          </div>
-        </section>
-
-        {/* --- Unified Filters --- */}
-        <section className="mb-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-            <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
-                {/* View Dropdown */}
-                <div className="flex-grow" style={{minWidth: '150px'}}>
-                    <label htmlFor="view-filter" className="block text-xs font-medium text-slate-400 mb-1">View</label>
-                    <select
-                        id="view-filter"
-                        value={quickView}
-                        onChange={(e) => handleQuickViewChange(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="custom">Custom</option>
-                        <option value="current_month">Current Month</option>
-                        <option value="next_month">Next Month</option>
-                        <option value="current_quarter">Current Quarter</option>
-                        <option value="next_quarter">Next Quarter</option>
-                        <option value="current_year">Current Year</option>
-                        <option value="next_year">Next Year</option>
-                    </select>
-                </div>
-
-                {/* Products Dropdown */}
-                 <div className="flex-grow" style={{minWidth: '150px'}}>
-                    <label htmlFor="product-filter" className="block text-xs font-medium text-slate-400 mb-1">Products</label>
-                    <select 
-                        id="product-filter"
-                        value={selectedProduct}
-                        onChange={(e) => setSelectedProduct(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="Overall">Overall</option>
-                        {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                
-                {/* Brand Dropdown */}
-                 <div className="flex-grow" style={{minWidth: '150px'}}>
-                     <label htmlFor="brand-filter" className="block text-xs font-medium text-slate-400 mb-1">Brand</label>
-                    <select 
-                        id="brand-filter"
-                        value={selectedBrand}
-                        onChange={(e) => setSelectedBrand(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="All">All Brands</option>
-                        {availableBrands.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                </div>
-
-                {/* Table Source Filter */}
-                <div className="flex-grow" style={{minWidth: '150px'}}>
-                    <label htmlFor="table-source-filter" className="block text-xs font-medium text-slate-400 mb-1">Table Source</label>
-                    <select 
-                        id="table-source-filter"
-                        value={selectedTableSource}
-                        onChange={(e) => setSelectedTableSource(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="All">All Tables</option>
-                        {databaseStats.tableSources.map(ts => <option key={ts.value} value={ts.value}>{ts.label}</option>)}
-                    </select>
-                </div>
-                
-                {/* Date Inputs */}
-                <div className="flex-grow" style={{minWidth: '150px'}}>
-                    <label htmlFor="start-date-filter" className="block text-xs font-medium text-slate-400 mb-1">Start Date</label>
-                    <input
-                        type="date"
-                        id="start-date-filter"
-                        value={filterStartDate}
-                        onChange={e => handleManualDateChange(e.target.value, 'start')}
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                 <div className="flex-grow" style={{minWidth: '150px'}}>
-                    <label htmlFor="end-date-filter" className="block text-xs font-medium text-slate-400 mb-1">End Date</label>
-                    <input
-                        type="date"
-                        id="end-date-filter"
-                        value={filterEndDate}
-                        onChange={e => handleManualDateChange(e.target.value, 'end')}
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleApplyDateFilter}
-                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                        Go
-                    </button>
-                    {appliedDateRange && (
-                         <button
-                            onClick={handleClearDateFilter}
-                            className="w-full sm:w-auto bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
-            {dateError && <p className="text-red-400 text-sm mt-2">{dateError}</p>}
+          {dateError && <p className="text-red-400 text-sm mt-2">{dateError}</p>}
         </section>
         
-        {isOverallView ? (
-            <div>
-                 <section className="mb-8">
-                    <h2 className="text-xl font-bold text-slate-100 mb-4">
-                        Brand Overview {appliedDateRange && <span className="text-base font-normal text-slate-400">- ({appliedDateRange.start} to {appliedDateRange.end})</span>}
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                        {brands.map(brand => (
-                            <BrandOverviewCard 
-                                key={brand}
-                                brand={brand}
-                                stats={brandStats[brand]}
-                            />
-                        ))}
+        {/* Filtered Inventory Preview Section */}
+        <section className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-100 mb-3 sm:mb-4">
+            📊 Filtered Inventory {appliedDateRange && <span className="text-sm sm:text-base font-normal text-slate-400">- ({appliedDateRange.start} to {appliedDateRange.end})</span>}
+          </h2>
+          
+          {previewData.length === 0 ? (
+            <div className="text-center py-8 bg-slate-800/50 border border-slate-700 rounded-lg">
+              <p className="text-slate-400 text-lg">Click "Apply Filters" to view inventory data</p>
+            </div>
+          ) : (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-slate-200 mb-6 text-center">
+                {selectedProduct === 'Overall' ? 'All Products' : selectedProduct} - {selectedBrand === 'All' ? 'All Brands' : selectedBrand}
+              </h3>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-slate-700/50 rounded-lg p-4 text-center border border-slate-600">
+                    <div className="text-3xl font-bold text-green-400 mb-2">
+                      {filteredStats.booked}
                     </div>
-                </section>
-                <section>
-                    <PieChart title="Overall Inventory Distribution" data={chartData} />
-                </section>
-            </div>
-        ) : (
-            <div>
-                <h2 className="text-xl font-bold text-slate-100 mb-4">{selectedProduct} - {selectedBrand === 'All' ? 'All Brands' : selectedBrand}</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                   <div className="lg:col-span-1">
-                        <ProductDetailCard 
-                            product={selectedProduct}
-                            brand={selectedBrand}
-                            stats={filteredStats}
-                        />
-                   </div>
-                   <div className="lg:col-span-2">
-                        <PieChart title={`${selectedProduct} Distribution`} data={chartData} />
-                   </div>
+                    <div className="text-sm text-slate-300 font-medium">Booked</div>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4 text-center border border-slate-600">
+                    <div className="text-3xl font-bold text-yellow-400 mb-2">
+                      {filteredStats.onHold}
+                    </div>
+                    <div className="text-sm text-slate-300 font-medium">On Hold</div>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4 text-center border border-slate-600">
+                    <div className="text-3xl font-bold text-slate-400 mb-2">
+                      {filteredStats.available}
+                    </div>
+                    <div className="text-sm text-slate-300 font-medium">Available</div>
+                  </div>
                 </div>
+                
+                {/* Medium Pie Chart */}
+                <div className="flex justify-center">
+                  <div className="w-56 h-56">
+                    <PieChart title="" data={chartData} />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Summary */}
+              <div className="mt-8 text-center">
+                <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600">
+                  <p className="text-slate-200 text-lg">
+                    Total: <span className="font-bold text-white">{filteredStats.total}</span> slots | 
+                    Utilization: <span className="font-bold text-green-400">
+                      {filteredStats.total > 0 ? Math.round((filteredStats.booked / filteredStats.total) * 100) : 0}%
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
-        )}
+          )}
+        </section>
       </div>
 
       {/* Modals */}

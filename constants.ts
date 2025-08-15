@@ -193,6 +193,19 @@ export const statusStyles: Record<Status, { base: string; color: string; colorHe
   },
 };
 
-// Dynamically get unique products and brands from the master list
-export const products: string[] = [...new Set(masterInventoryConfig.filter(i => i.monthly > 0).map(item => item.productName))].sort();
-export const brands: string[] = [...new Set(masterInventoryConfig.map(item => item.brand))].sort();
+// Updated products and brands for the dashboard
+export const products: string[] = [
+  'Mailshots',
+  'Newsletter Sponsorship',
+  'Newsletter Featured Placement',
+  'Original Content Newsletter Feature Placement',
+  'Newsletter Category Sponsorship',
+  'Press Release',
+  'Press Release Promotion Placement',
+  'Original Content Production',
+  'Hosted Content',
+  'NIAB Event Coverage',
+  'Weekender Newsletter Sponsorship'
+];
+
+export const brands: string[] = ['Accountancy Age', 'The CFO', 'Global Treasurer', 'Bobsguide', 'HRD Connect'];

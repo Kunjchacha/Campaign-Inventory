@@ -1,140 +1,187 @@
-export interface DatabaseInventoryItem {
-  id: number;
-  slot_name: string;
-  client: string | null;
-  status: string;
-  start_date: string;
-  end_date: string;
-  product: string;
-  brand: string;
-  table_source: string;
-}
+import { Pool } from 'pg';
+import type { DatabaseInventoryItem, CampaignLedgerItem } from '../types';
 
-export interface CampaignLedgerItem {
-  id: number;
-  campaign_name: string;
-  client: string;
-  product: string;
-  brand: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
+// Database configuration
+const pool = new Pool({
+  user: 'kunj.chacha@contentive.com',
+  host: 'contentive-warehouse-instance-1.cq8sion7djdk.eu-west-2.rds.amazonaws.com',
+  database: 'campaign_metadata',
+  password: '(iRFw989b{5h',
+  port: 5432,
+});
+
+// Function to map database products to dashboard products
+const mapProductToDashboard = (mediaAsset: string): string | null => {
+  const asset = mediaAsset?.toLowerCase() || '';
+  
+  // Mailshots (includes LVB_Mailshots)
+  if (asset === 'mailshot' || asset === 'lvb_mailshot') {
+    return 'Mailshots';
+  }
+  
+  // Newsletter Sponsorship - Weekly
+  if (asset === 'newsletter_sponsorship') {
+    return 'Newsletter Sponsorship - Weekly';
+  }
+  
+  // Newsletter Sponsorship - Weekender
+  if (asset === 'weekender_newsletter_sponsorship') {
+    return 'Newsletter Sponsorship - Weekender';
+  }
+  
+  // Newsletter Placement (all Feature Placements)
+  if (asset === 'newsletter_featured_placement' || asset === 'original_content_newsletter_feature_placement') {
+    return 'Newsletter Placement';
+  }
+  
+  // Newsletter Category Sponsorship
+  if (asset === 'newsletter_category_sponsorship') {
+    return 'Newsletter Category Sponsorship';
+  }
+  
+  // Return null for products we don't want to show
+  return null;
+};
+
+// Function to normalize status values
+const normalizeStatus = (status: string): string => {
+  const normalized = status?.toLowerCase().trim() || '';
+  
+  if (normalized === 'booked') {
+    return 'Booked';
+  }
+  
+  if (normalized === 'not booked' || normalized === 'not booked ') {
+    return 'Available';
+  }
+  
+  if (normalized === 'hold' || normalized === 'hold ' || normalized === 'on hold' || normalized === 'on hold ') {
+    return 'On Hold';
+  }
+  
+  // Default to Available for unknown statuses
+  return 'Available';
+};
+
+// Function to map database brand names to dashboard brand names
+const mapBrandToDashboard = (websiteName: string, tableSource: string): string => {
+  const name = websiteName?.toLowerCase().trim() || '';
+  
+  // Map based on website name
+  if (name === 'accountancy age') {
+    return 'Accountancy Age';
+  }
+  if (name === 'hrd') {
+    return 'HRD Connect';
+  }
+  
+  // Map based on table source as fallback
+  switch (tableSource) {
+    case 'aa_inventory':
+      return 'Accountancy Age';
+    case 'bob_inventory':
+      return 'Bobsguide';
+    case 'cfo_inventory':
+      return 'The CFO';
+    case 'gt_inventory':
+      return 'Global Treasurer';
+    case 'hrd_inventory':
+      return 'HRD Connect';
+    default:
+      return websiteName || 'Unknown';
+  }
+};
 
 export class DatabaseService {
-  private static instance: DatabaseService;
-  private baseUrl: string;
-
-  private constructor() {
-    this.baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-  }
-
-  public static getInstance(): DatabaseService {
-    if (!DatabaseService.instance) {
-      DatabaseService.instance = new DatabaseService();
-    }
-    return DatabaseService.instance;
-  }
-
-  async fetchInventoryData(): Promise<DatabaseInventoryItem[]> {
+  static async fetchInventoryData(): Promise<DatabaseInventoryItem[]> {
     try {
-      // For now, we'll use mock data structure based on the table names
-      // In a real implementation, this would connect to your PostgreSQL database
-      const mockData: DatabaseInventoryItem[] = [
-        {
-          id: 1,
-          slot_name: 'PR-AA-Slot1',
-          client: 'Client 1',
-          status: 'Booked',
-          start_date: '2024-01-01',
-          end_date: '2024-01-07',
-          product: 'Press Release',
-          brand: 'AA',
-          table_source: 'aa_inventory'
-        },
-        {
-          id: 2,
-          slot_name: 'PR-CFO-Slot1',
-          client: 'Client 2',
-          status: 'On Hold',
-          start_date: '2024-01-08',
-          end_date: '2024-01-14',
-          product: 'Press Release',
-          brand: 'CFO',
-          table_source: 'cfo_inventory'
-        },
-        {
-          id: 3,
-          slot_name: 'PR-GT-Slot1',
-          client: null,
-          status: 'Available',
-          start_date: '2024-01-15',
-          end_date: '2024-01-21',
-          product: 'Press Release',
-          brand: 'GT',
-          table_source: 'gt_inventory'
-        }
+      const inventoryTables = [
+        'aa_inventory',
+        'bob_inventory', 
+        'cfo_inventory',
+        'gt_inventory',
+        'hrd_inventory'
       ];
 
-      return mockData;
-    } catch (error) {
-      console.error('Error fetching inventory data:', error);
-      return [];
-    }
-  }
+      const allInventoryData: DatabaseInventoryItem[] = [];
 
-  async fetchCampaignLedger(): Promise<CampaignLedgerItem[]> {
-    try {
-      // Mock data for campaign ledger
-      const mockData: CampaignLedgerItem[] = [
-        {
-          id: 1,
-          campaign_name: 'Q1 Press Release Campaign',
-          client: 'Client 1',
-          product: 'Press Release',
-          brand: 'AA',
-          start_date: '2024-01-01',
-          end_date: '2024-03-31',
-          status: 'Active'
-        },
-        {
-          id: 2,
-          campaign_name: 'Q1 Newsletter Campaign',
-          client: 'Client 2',
-          product: 'Newsletter Lead Sponsor',
-          brand: 'CFO',
-          start_date: '2024-01-01',
-          end_date: '2024-03-31',
-          status: 'Active'
+      for (const table of inventoryTables) {
+        try {
+          const query = `SELECT * FROM campaign_metadata.${table} WHERE "ID" >= 8000 LIMIT 1000`;
+          const result = await pool.query(query);
+          
+          if (result.rows && result.rows.length > 0) {
+            console.log(`Processing ${result.rows.length} items from ${table}`);
+            
+            // Transform the data to match our interface
+            const transformedData = result.rows.map((item: any) => {
+              const mappedProduct = mapProductToDashboard(item["Media_Asset"] || item.product);
+              
+              // Only include items with mapped products (filter out unwanted products)
+              if (!mappedProduct) {
+                return null;
+              }
+              
+              const transformedItem = {
+                id: item.ID || item.id,
+                slot_name: item["Inventory Slots"] || item.slot_name,
+                client: item["Booking ID"] || item.client,
+                status: normalizeStatus(item["Booked/Not Booked"] || item.status),
+                start_date: item.Dates || item.start_date,
+                end_date: item.Dates || item.end_date, // Using same date for now
+                product: mappedProduct,
+                brand: mapBrandToDashboard(item["Website_Name"] || item.brand, table),
+                table_source: table
+              };
+              
+              return transformedItem;
+            }).filter(Boolean); // Remove null items
+            
+            console.log(`After filtering, ${transformedData.length} items from ${table}`);
+            allInventoryData.push(...transformedData);
+          }
+        } catch (tableError) {
+          console.warn(`Failed to fetch from ${table}:`, tableError);
+          // Continue with other tables even if one fails
         }
-      ];
+      }
 
-      return mockData;
+      return allInventoryData;
     } catch (error) {
-      console.error('Error fetching campaign ledger:', error);
-      return [];
+      console.error('Database error:', error);
+      throw error;
     }
   }
 
-  async fetchInventoryByBrand(brand: string): Promise<DatabaseInventoryItem[]> {
-    const allData = await this.fetchInventoryData();
-    return allData.filter(item => item.brand === brand);
-  }
-
-  async fetchInventoryByProduct(product: string): Promise<DatabaseInventoryItem[]> {
-    const allData = await this.fetchInventoryData();
-    return allData.filter(item => item.product === product);
-  }
-
-  async fetchInventoryByDateRange(startDate: string, endDate: string): Promise<DatabaseInventoryItem[]> {
-    const allData = await this.fetchInventoryData();
-    return allData.filter(item => {
-      const itemStart = new Date(item.start_date);
-      const itemEnd = new Date(item.end_date);
-      const rangeStart = new Date(startDate);
-      const rangeEnd = new Date(endDate);
+  static async fetchCampaignLedger(): Promise<CampaignLedgerItem[]> {
+    try {
+      const query = "SELECT * FROM campaign_metadata.campaign_ledger LIMIT 1000";
+      const result = await pool.query(query);
       
-      return itemStart <= rangeEnd && itemEnd >= rangeStart;
-    });
+      if (result.rows && result.rows.length > 0) {
+        // Transform the campaign ledger data
+        const transformedLedger = result.rows.map((item: any) => ({
+          id: item.ID || item.id,
+          campaign_name: item["Product Name - As per Listing Hub"] || item.campaign_name,
+          client: item["Client Name"] || item.client,
+          product: item["Product Name - As per Listing Hub"] || item.product,
+          brand: item.Brand || item.brand,
+          start_date: item["Scheduled Live Date"] || item.start_date,
+          end_date: item["Schedule End Date"] || item.end_date,
+          status: item.Status || item.status
+        }));
+
+        return transformedLedger;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Campaign ledger error:', error);
+      throw error;
+    }
+  }
+
+  static async closeConnection() {
+    await pool.end();
   }
 }
