@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { inventoryData, products, brands, statusStyles } from './constants';
+import { statusStyles } from './constants';
 import type { InventoryItem, Status, DatabaseInventoryItem, CampaignLedgerItem } from './types';
 import { ClientsModal } from './components/ClientsModal';
 import { BrandOverviewCard } from './components/BrandOverviewCard';
@@ -34,6 +34,17 @@ export const App = () => {
     error, 
     fetchPreviewData
   } = useDatabase();
+
+  // Extract unique products and brands from database data
+  const products = useMemo(() => {
+    const uniqueProducts = new Set(databaseInventory.map(item => item.product));
+    return Array.from(uniqueProducts).sort();
+  }, [databaseInventory]);
+
+  const brands = useMemo(() => {
+    const uniqueBrands = new Set(databaseInventory.map(item => item.brand));
+    return Array.from(uniqueBrands).sort();
+  }, [databaseInventory]);
 
   // Fetch data on component mount
   useEffect(() => {
