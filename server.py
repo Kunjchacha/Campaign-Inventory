@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import asyncpg
-import asyncio
+import psycopg2
+import psycopg2.extras
 import os
 from datetime import datetime, timedelta
 
@@ -17,9 +17,9 @@ DB_CONFIG = {
     'password': '(iRFw989b{5h'
 }
 
-async def get_db_connection():
+def get_db_connection():
     try:
-        conn = await asyncpg.connect(**DB_CONFIG)
+        conn = psycopg2.connect(**DB_CONFIG)
         print("Database connection successful!")
         return conn
     except Exception as e:
@@ -146,18 +146,14 @@ def get_inventory_data():
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_get_inventory_data_async(brand, product, start_date, end_date))
-        loop.close()
-        return result
+        # Call the synchronous function directly
+        return _get_inventory_data_sync(brand, product, start_date, end_date)
     except Exception as error:
         print(f"Database error: {error}")
         return jsonify({'error': 'Database connection failed'}), 500
 
-async def _get_inventory_data_async(brand='All', product='Overall', start_date=None, end_date=None):
-    conn = await get_db_connection()
+def _get_inventory_data_sync(brand='All', product='Overall', start_date=None, end_date=None):
+    conn = get_db_connection()
     
     inventory_tables = [
         'aa_inventory',
@@ -191,7 +187,10 @@ async def _get_inventory_data_async(brand='All', product='Overall', start_date=N
             SELECT * FROM latest_slots
             '''
             
-            result = await conn.fetch(query)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute(query)
+            result = cursor.fetchall()
+            cursor.close()
             
             if result:
                 print(f"Processing {len(result)} latest items from {table}")
@@ -227,7 +226,7 @@ async def _get_inventory_data_async(brand='All', product='Overall', start_date=N
     # Apply filters to the complete data
     filtered_data = apply_filters_to_inventory(all_inventory_data, brand, product, start_date, end_date)
     
-    await conn.close()
+    conn.close()
     return jsonify(filtered_data)
 
 def apply_filters_to_inventory(inventory_data, brand, product, start_date, end_date):
@@ -288,21 +287,20 @@ def apply_filters_to_inventory(inventory_data, brand, product, start_date, end_d
 @app.route('/api/campaign-ledger', methods=['GET'])
 def get_campaign_ledger():
     try:
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_get_campaign_ledger_async())
-        loop.close()
-        return result
+        # Call the synchronous function directly
+        return _get_campaign_ledger_sync()
     except Exception as error:
         print(f"Campaign ledger error: {error}")
         return jsonify({'error': 'Database connection failed'}), 500
 
-async def _get_campaign_ledger_async():
-    conn = await get_db_connection()
+def _get_campaign_ledger_sync():
+    conn = get_db_connection()
     
     query = "SELECT * FROM campaign_metadata.campaign_ledger LIMIT 1000"
-    result = await conn.fetch(query)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
     
     if result:
         # Transform the campaign ledger data
@@ -320,38 +318,38 @@ async def _get_campaign_ledger_async():
             }
             transformed_ledger.append(transformed_item)
         
-        await conn.close()
+        conn.close()
         return jsonify(transformed_ledger)
     else:
-        await conn.close()
+        conn.close()
         return jsonify([])
 
 @app.route('/api/test', methods=['GET'])
 def test_connection():
     try:
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_test_connection_async())
-        loop.close()
-        return result
+        # Call the synchronous function directly
+        return _test_connection_sync()
     except Exception as error:
         print(f"Test connection error: {error}")
         return jsonify({'error': str(error)}), 500
 
-async def _test_connection_async():
-    conn = await get_db_connection()
+def _test_connection_sync():
+    conn = get_db_connection()
     
     # Test query to list available databases
-    databases_result = await conn.fetch("SELECT datname FROM pg_database WHERE datistemplate = false")
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false")
+    databases_result = cursor.fetchall()
     databases = [row['datname'] for row in databases_result]
     
     # Test query to list available schemas
-    result = await conn.fetch("SELECT schema_name FROM information_schema.schemata")
+    cursor.execute("SELECT schema_name FROM information_schema.schemata")
+    result = cursor.fetchall()
     schemas = [row['schema_name'] for row in result]
     
     # Test query to list available tables in all schemas
-    tables_result = await conn.fetch("SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog')")
+    cursor.execute("SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog')")
+    tables_result = cursor.fetchall()
     tables_by_schema = {}
     for row in tables_result:
         schema = row['table_schema']
@@ -360,24 +358,21 @@ async def _test_connection_async():
             tables_by_schema[schema] = []
         tables_by_schema[schema].append(table)
     
-    await conn.close()
+    cursor.close()
+    conn.close()
     return jsonify({'databases': databases, 'schemas': schemas, 'tables_by_schema': tables_by_schema, 'message': 'Connection successful'})
 
 @app.route('/api/brand-overview', methods=['GET'])
 def get_brand_overview():
     try:
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_get_brand_overview_async())
-        loop.close()
-        return result
+        # Call the synchronous function directly
+        return _get_brand_overview_sync()
     except Exception as error:
         print(f"Brand overview error: {error}")
         return jsonify({'error': 'Database connection failed'}), 500
 
-async def _get_brand_overview_async():
-    conn = await get_db_connection()
+def _get_brand_overview_sync():
+    conn = get_db_connection()
     
     brand_overview = {}
     
@@ -402,7 +397,11 @@ async def _get_brand_overview_async():
         WHERE "ID" >= 8000
         """
         
-        result = await conn.fetch(query)
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
+        
         if result:
             row = result[0]
             brand_overview[brand_name] = {
@@ -412,7 +411,7 @@ async def _get_brand_overview_async():
                 'on_hold': row['on_hold']
             }
     
-    await conn.close()
+    conn.close()
     return jsonify(brand_overview)
 
 @app.route('/api/test-filter', methods=['GET'])
@@ -424,18 +423,14 @@ def test_filter():
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_test_filter_async(brand, product, start_date, end_date))
-        loop.close()
-        return result
+        # Call the synchronous function directly
+        return _test_filter_sync(brand, product, start_date, end_date)
     except Exception as error:
         print(f"Test filter error: {error}")
         return jsonify({'error': str(error)}), 500
 
-async def _test_filter_async(brand, product, start_date, end_date):
-    conn = await get_db_connection()
+def _test_filter_sync(brand, product, start_date, end_date):
+    conn = get_db_connection()
     
     # Map brand to table
     brand_to_table = {
@@ -485,8 +480,11 @@ async def _test_filter_async(brand, product, start_date, end_date):
     
     print(f"Executing query: {query}")
     
-    result = await conn.fetch(query)
-    await conn.close()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
+    conn.close()
     
     if result:
         row = result[0]
@@ -506,18 +504,14 @@ async def _test_filter_async(brand, product, start_date, end_date):
 @app.route('/api/current-week-inventory', methods=['GET'])
 def get_current_week_inventory():
     try:
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_get_current_week_inventory_async())
-        loop.close()
-        return result
+        # Call the synchronous function directly
+        return _get_current_week_inventory_sync()
     except Exception as error:
         print(f"Current week inventory error: {error}")
         return jsonify({'error': 'Database connection failed'}), 500
 
-async def _get_current_week_inventory_async():
-    conn = await get_db_connection()
+def _get_current_week_inventory_sync():
+    conn = get_db_connection()
     
     inventory_tables = [
         ('aa_inventory', 'Accountancy Age'),
@@ -553,7 +547,10 @@ async def _get_current_week_inventory_async():
             FROM latest_slots
             '''
             
-            result = await conn.fetchrow(query)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute(query)
+            result = cursor.fetchone()
+            cursor.close()
             
             if result:
                 current_week_data.append({
@@ -569,7 +566,7 @@ async def _get_current_week_inventory_async():
             print(f"Failed to fetch current week data from {table}: {table_error}")
             continue
     
-    await conn.close()
+    conn.close()
     return jsonify(current_week_data)
 
 # Remove the old preview-data endpoint since we're now using the consolidated inventory endpoint
