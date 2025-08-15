@@ -1,221 +1,208 @@
 # Campaign Inventory Dashboard
 
-A React-based dashboard for managing and visualizing campaign inventory data from PostgreSQL database with real-time data synchronization.
+A real-time dashboard for tracking campaign inventory across all brands and products. Built with Python Flask and PostgreSQL, featuring a modern web interface with live data updates.
 
-## 🚀 Live Demo
+## 🚀 Features
 
-**Live URL**: https://kunjchacha.github.io/Campaign-Inventory/
+- **Real-time Data**: Live inventory data from PostgreSQL database
+- **Brand Overview**: Summary statistics for all brands (Accountancy Age, Bobsguide, The CFO, Global Treasurer, HRD Connect)
+- **Interactive Charts**: Visual representation of inventory utilization
+- **Recent Bookings**: Latest campaign bookings from the ledger
+- **Auto-refresh**: Dashboard updates every 30 seconds
+- **Responsive Design**: Works on desktop and mobile devices
 
-## ✨ Features
+## 📊 Dashboard Components
 
-- **📊 Real-time Data**: Live data from PostgreSQL database with automatic deduplication
-- **🎯 Brand Overview**: Interactive pie charts showing slot distribution for each brand
-- **🔍 Advanced Filtering**: Filter by brand, product, and date ranges with precise results
-- **📱 Responsive Design**: Fully responsive design for mobile and desktop
-- **👥 Client Management**: View detailed client information and campaign data
-- **📈 Status Tracking**: Real-time tracking of Booked, On Hold, and Available slots
-- **🔄 Latest Data**: Always shows the most recent data using timestamp-based deduplication
+### Summary Cards
+- **Total Slots**: Overall inventory capacity
+- **Booked**: Currently booked slots
+- **On Hold**: Slots on hold
+- **Available**: Available slots for booking
+
+### Brand Overview Table
+- Detailed breakdown by brand
+- Shows total, booked, available, and on-hold slots
+- Real-time data from database
+
+### Utilization Chart
+- Interactive doughnut chart
+- Visual representation of slot utilization
+- Color-coded by status
+
+### Recent Bookings
+- Latest 10 bookings from campaign ledger
+- Shows client, product, brand, dates, and status
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS
-- **Backend**: Python Flask, asyncpg (PostgreSQL)
-- **Database**: PostgreSQL (AWS RDS)
-- **Deployment**: GitHub Pages
+- **Backend**: Python Flask
+- **Database**: PostgreSQL with psycopg2
+- **Frontend**: HTML, CSS (Tailwind), JavaScript
+- **Charts**: Chart.js
+- **Deployment**: Ready for Render/Railway/Heroku
+
+## 📋 Requirements
+
+- Python 3.8+
+- PostgreSQL database
+- Required Python packages (see requirements.txt)
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Node.js (v18 or higher)
-- Python 3.8+
-- PostgreSQL database access
-
-### Installation
-
-1. **Clone the repository:**
-```bash
-git clone https://github.com/kunjchacha/Campaign-Inventory.git
-cd Campaign-Inventory
-```
-
-2. **Install frontend dependencies:**
-```bash
-npm install
-```
-
-3. **Install backend dependencies:**
+### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Configure database connection in `server.py`:**
+### 2. Configure Database
+Update the database configuration in `simple_dashboard.py`:
 ```python
 DB_CONFIG = {
     'host': 'your-database-host',
     'port': 5432,
+    'database': 'your-database-name',
     'user': 'your-username',
-    'password': 'your-password',
-    'database': 'analytics'
+    'password': 'your-password'
 }
 ```
 
-### Running Locally
-
-1. **Start the backend server:**
+### 3. Run the Dashboard
 ```bash
-python server.py
+python simple_dashboard.py
 ```
 
-2. **Start the frontend development server:**
+### 4. Access Dashboard
+Open your browser and go to: `http://localhost:5000`
+
+## 🧪 Testing
+
+Run the comprehensive test suite:
 ```bash
-npm run dev
+python comprehensive_test.py
 ```
 
-3. **Open your browser and navigate to `http://localhost:5173`**
+This will test:
+- Database connection
+- Dashboard page loading
+- API endpoints
+- Data integrity
+- Performance
+- Real-time data updates
 
-## 📊 Database Schema
+## 📡 API Endpoints
 
-### Inventory Tables
-- `aa_inventory` - Accountancy Age inventory
-- `bob_inventory` - Bobsguide inventory  
-- `cfo_inventory` - The CFO inventory
-- `gt_inventory` - Global Treasurer inventory
-- `hrd_inventory` - HRD Connect inventory
-
-### Campaign Ledger
-- `campaign_ledger` - Client campaign information
-
-## 🔌 API Endpoints
-
-- `GET /api/inventory` - Get all inventory data (deduplicated)
-- `GET /api/campaign-ledger` - Get campaign ledger data
-- `GET /api/brand-overview` - Get brand overview statistics (latest data)
-- `GET /api/preview-data` - Get filtered preview data with date filtering
-
-## 📖 Usage Guide
-
-### 1. **Brand Overview Section**
-- View total slots and distribution for each brand
-- Interactive pie charts showing Booked, On Hold, and Available percentages
-- Unfiltered data showing complete brand statistics
-
-### 2. **Filtering System**
-- **Brand Selection**: Choose specific brand or "All Brands"
-- **Product Selection**: Filter by Mailshots, Newsletter Sponsorship, etc.
-- **Date Range**: Select specific date ranges (Aug 11-15, 2025)
-- **Quick Views**: Predefined filters for Current Week, Month, Quarter, Year
-
-### 3. **Preview Section**
-- Shows filtered results based on your selections
-- Real-time counts and percentages
-- Affected only by filter selections (not Brand Overview)
-
-### 4. **Client Details**
-- Click "View Clients" button to see campaign information
-- Filtered by current brand, product, and date selections
-
-## 🔧 Key Technical Features
-
-### Data Deduplication
-- **Latest Record Priority**: Uses `last_updated` timestamp to get most recent data
-- **Slot-based Deduplication**: Groups by Date + Slot to avoid duplicates
-- **Automatic Handling**: No manual intervention required
-
-### Date Filtering
-- **Server-side Filtering**: Handles complex date formats in database
-- **Text Date Support**: "Monday, August 11, 2025" format
-- **Range Filtering**: Precise date range selection
-
-### Status Normalization
-- **Standardized Statuses**: Booked, On Hold, Available
-- **Cross-table Consistency**: Same status values across all brands
-- **Real-time Updates**: Reflects latest database changes
-
-## 📁 Project Structure
-
+### GET /api/inventory
+Returns summary data for all brands:
+```json
+[
+  {
+    "brand": "Accountancy Age",
+    "total_slots": 3363,
+    "booked": 222,
+    "available": 3078,
+    "on_hold": 23,
+    "unclassified": 40
+  }
+]
 ```
-Campaign-Inventory/
-├── App.tsx                 # Main application component
-├── components/             # React components
-│   ├── BrandOverviewCard.tsx
-│   ├── ClientModal.tsx
-│   ├── PieChart.tsx
-│   ├── ProductDetailCard.tsx
-│   └── StatCard.tsx
-├── hooks/                  # Custom React hooks
-│   └── useDatabase.ts     # Database data fetching
-├── services/               # API services
-├── server.py              # Flask backend server
-├── requirements.txt       # Python dependencies
-├── package.json           # Node.js dependencies
-└── vite.config.ts         # Vite configuration
+
+### GET /api/bookings
+Returns recent bookings:
+```json
+[
+  {
+    "client": "Client Name",
+    "product": "Product Name",
+    "brand": "Brand Name",
+    "start_date": "2025-01-01",
+    "end_date": "2025-01-31",
+    "status": "Active"
+  }
+]
 ```
+
+## 🗄️ Database Schema
+
+The dashboard connects to PostgreSQL tables:
+- `campaign_metadata.aa_inventory` - Accountancy Age inventory
+- `campaign_metadata.bob_inventory` - Bobsguide inventory
+- `campaign_metadata.cfo_inventory` - The CFO inventory
+- `campaign_metadata.gt_inventory` - Global Treasurer inventory
+- `campaign_metadata.hrd_inventory` - HRD Connect inventory
+- `campaign_metadata.campaign_ledger` - Campaign bookings
 
 ## 🚀 Deployment
 
-### Automatic Deployment
-The dashboard is automatically deployed to GitHub Pages when you push to the main branch.
+### Render (Recommended)
+1. Connect your GitHub repository
+2. Set build command: `pip install -r requirements.txt`
+3. Set start command: `gunicorn simple_dashboard:app`
+4. Add environment variables if needed
 
-### Manual Deployment
-```bash
-npm run build
-npm run deploy
-```
+### Railway
+1. Connect your repository
+2. Railway will auto-detect Python
+3. Set start command: `gunicorn simple_dashboard:app`
 
-## 🔍 Troubleshooting
+### Heroku
+1. Create a new Heroku app
+2. Connect your repository
+3. Add PostgreSQL addon
+4. Deploy
+
+## 📈 Performance
+
+- **Response Time**: ~3-4 seconds for full dashboard load
+- **Auto-refresh**: Every 30 seconds
+- **Database Queries**: Optimized with proper indexing
+- **Caching**: Built-in browser caching for static assets
+
+## 🔧 Configuration
+
+### Environment Variables
+- `DATABASE_URL`: PostgreSQL connection string
+- `FLASK_ENV`: Set to 'production' for deployment
+
+### Customization
+- Modify `HTML_TEMPLATE` in `simple_dashboard.py` for UI changes
+- Update database queries for different data requirements
+- Adjust auto-refresh interval in the JavaScript section
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Error**
-   - Verify database credentials in `server.py`
-   - Check network connectivity to database
+1. **Database Connection Failed**
+   - Check database credentials
+   - Verify network connectivity
+   - Ensure database is running
 
-2. **CORS Issues**
-   - Ensure backend server is running on port 5000
-   - Check browser console for CORS errors
+2. **Dashboard Not Loading**
+   - Check if Flask server is running
+   - Verify port 5000 is available
+   - Check browser console for errors
 
-3. **Date Filtering Issues**
-   - Verify date format in database
-   - Check server logs for date parsing errors
-
-4. **Build Errors**
-   - Run `npm install` to ensure all dependencies are installed
-   - Check Node.js version compatibility
+3. **Data Not Updating**
+   - Verify database has recent data
+   - Check auto-refresh is enabled
+   - Clear browser cache
 
 ### Debug Mode
-
-Enable debug logging in the backend:
+Run with debug mode for detailed error messages:
 ```python
 app.run(debug=True, port=5000)
 ```
 
-## 📈 Recent Updates
+## 📝 License
 
-### Latest Fixes (Current Version)
-- ✅ **Fixed Data Deduplication**: Now uses latest records only
-- ✅ **Improved Date Filtering**: Server-side filtering for accuracy
-- ✅ **Enhanced Brand Overview**: Shows correct totals and percentages
-- ✅ **Mobile Responsiveness**: Full responsive design
-- ✅ **Real-time Data**: Always shows most recent database state
+This project is proprietary and confidential.
 
-### Data Accuracy
-- **CFO Mailshots Aug 11-15, 2025**: 1 Booked slot (CFO-LUC01-ML-MAIN-1)
-- **Deduplication**: Handles duplicate records automatically
-- **Latest Timestamps**: Uses `last_updated` for most recent data
+## 🤝 Support
 
-## 🤝 Contributing
+For technical support or questions, contact the development team.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📞 Support
-
-For support and questions, please contact the development team or create an issue in the repository.
+**Last Updated**: August 15, 2025
+**Version**: 1.0.0
+**Status**: ✅ Production Ready

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Test</title>
+</head>
+<body>
+    <h1>Dashboard Test</h1>
+    <div id="status">Testing...</div>
+    <div id="data"></div>
+
+    <script>
+        async function testAPI() {
+            const statusDiv = document.getElementById('status');
+            const dataDiv = document.getElementById('data');
+            
+            try {
+                statusDiv.textContent = 'Testing API connection...';
+                
+                // Test inventory API
+                const response = await fetch('http://localhost:5000/api/inventory');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                statusDiv.textContent = `API working! Got ${data.length} items`;
+                
+                // Show first few items
+                const sampleData = data.slice(0, 3);
+                dataDiv.innerHTML = '<h3>Sample Data:</h3><pre>' + JSON.stringify(sampleData, null, 2) + '</pre>';
+                
+            } catch (error) {
+                statusDiv.textContent = 'Error: ' + error.message;
+                console.error('API Test Error:', error);
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>

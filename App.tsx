@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { statusStyles } from './constants';
 import type { InventoryItem, Status, DatabaseInventoryItem, CampaignLedgerItem } from './types';
 import { ClientsModal } from './components/ClientsModal';
-import { BrandOverviewCard } from './components/BrandOverviewCard';
 import { ProductDetailCard } from './components/ProductDetailCard';
 import { PieChart } from './components/PieChart';
 import { ClientModal } from './components/ClientModal';
