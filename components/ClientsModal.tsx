@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { inventoryData, products, brands } from '../constants';
+import { useDatabase } from '../hooks/useDatabase';
 
 interface ClientsModalProps {
     isOpen: boolean;
@@ -20,6 +20,20 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
     const [selectedProduct, setSelectedProduct] = useState('All');
     const [selectedBrand, setSelectedBrand] = useState('All');
     const [dateError, setDateError] = useState<string>('');
+
+    // Get data from the database hook
+    const { inventoryData, isLoading } = useDatabase();
+
+    // Extract unique products and brands from the data
+    const products = useMemo(() => {
+        const uniqueProducts = new Set(inventoryData.map(item => item.product));
+        return Array.from(uniqueProducts).sort();
+    }, [inventoryData]);
+
+    const brands = useMemo(() => {
+        const uniqueBrands = new Set(inventoryData.map(item => item.brand));
+        return Array.from(uniqueBrands).sort();
+    }, [inventoryData]);
 
     const handleDateChange = (dateString: string, type: 'start' | 'end') => {
         const selectedDate = new Date(dateString + 'T00:00:00');
@@ -49,7 +63,7 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
     };
     
     const clientBookings = useMemo(() => {
-        if (!startDate || !endDate) {
+        if (!startDate || !endDate || isLoading) {
             return {};
         }
 
@@ -60,8 +74,8 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
             const productMatch = selectedProduct === 'All' || item.product === selectedProduct;
             if (!brandMatch || !productMatch) return false;
 
-            const itemStartDate = new Date(item.startDate + 'T00:00:00');
-            const itemEndDate = new Date(item.endDate + 'T00:00:00');
+            const itemStartDate = new Date(item.start_date + 'T00:00:00');
+            const itemEndDate = new Date(item.end_date + 'T00:00:00');
 
             return itemStartDate <= endDate && itemEndDate >= startDate;
         });
@@ -75,8 +89,8 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
                 }
                 bookingsByClient[item.client].push({
                     product: item.product,
-                    startDate: item.startDate,
-                    endDate: item.endDate,
+                    startDate: item.start_date,
+                    endDate: item.end_date,
                 });
                 bookingsByClient[item.client].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
             }
@@ -84,7 +98,7 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
         
         return bookingsByClient;
 
-    }, [startDate, endDate, selectedBrand, selectedProduct]);
+    }, [startDate, endDate, selectedBrand, selectedProduct, inventoryData, isLoading]);
 
     if (!isOpen) return null;
 
@@ -165,7 +179,9 @@ export const ClientsModal: React.FC<ClientsModalProps> = ({ isOpen, onClose }) =
                 {/* Results */}
                 <div className="bg-slate-900/50 rounded-lg border border-slate-700 min-h-[150px] max-h-[300px] overflow-y-auto p-4">
                      <h3 className="text-lg font-semibold text-slate-200 mb-3">Booked Clients</h3>
-                     {(!startDate || !endDate) ? (
+                     {isLoading ? (
+                        <p className="text-slate-500">Loading data...</p>
+                     ) : (!startDate || !endDate) ? (
                         <p className="text-slate-500">Please select a start and end date to see clients.</p>
                      ) : Object.keys(clientBookings).length > 0 ? (
                         <div className="space-y-4">

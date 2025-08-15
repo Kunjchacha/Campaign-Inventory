@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { DatabaseInventoryItem, CampaignLedgerItem } from '../types';
 
-// Backend API URL
-const API_BASE_URL = 'http://localhost:5000/api';
+// Backend API URL - configurable for different environments
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://campaign-inventory-api.onrender.com/api'  // Update this with your actual deployed backend URL
+  : 'http://localhost:5000/api';
 
 
 
