@@ -1,208 +1,136 @@
 # Campaign Inventory Dashboard
 
-A real-time dashboard for tracking campaign inventory across all brands and products. Built with Python Flask and PostgreSQL, featuring a modern web interface with live data updates.
+A modern, responsive dashboard for tracking campaign inventory across multiple brands and products. Built with HTML, CSS (Tailwind), and JavaScript for seamless deployment on GitHub Pages.
 
-## 🚀 Features
+## 🚀 Live Demo
 
-- **Real-time Data**: Live inventory data from PostgreSQL database
-- **Brand Overview**: Summary statistics for all brands (Accountancy Age, Bobsguide, The CFO, Global Treasurer, HRD Connect)
-- **Interactive Charts**: Visual representation of inventory utilization
-- **Recent Bookings**: Latest campaign bookings from the ledger
-- **Auto-refresh**: Dashboard updates every 30 seconds
-- **Responsive Design**: Works on desktop and mobile devices
+Visit the live dashboard: [Campaign Inventory Dashboard](https://Kunjchacha.github.io/Campaign-Inventory)
+
+## ✨ Features
+
+- **Real-time Inventory Tracking**: Monitor available, booked, and on-hold slots across all brands
+- **Advanced Filtering**: Filter by product, brand, and date range
+- **Upcoming Deliverables**: View next 2 weeks of scheduled deliverables
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **Modern UI**: Clean, professional interface with smooth animations
+- **Auto-refresh**: Automatically updates data every 30 seconds
+
+## 🏗️ Project Structure
+
+```
+campaign-inventory/
+├── index.html              # Main dashboard (GitHub Pages)
+├── simple_dashboard.py     # Flask backend (local development)
+├── requirements.txt        # Python dependencies
+├── package.json           # Node.js dependencies (React app)
+├── README.md              # This file
+└── .gitignore            # Git ignore rules
+```
+
+## 🚀 Quick Start
+
+### For GitHub Pages (Static Version)
+The dashboard is automatically deployed to GitHub Pages and available at:
+```
+https://Kunjchacha.github.io/Campaign-Inventory
+```
+
+### For Local Development (Flask Backend)
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Kunjchacha/Campaign-Inventory.git
+   cd Campaign-Inventory
+   ```
+
+2. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the Flask application**:
+   ```bash
+   python simple_dashboard.py
+   ```
+
+4. **Open your browser** and navigate to:
+   ```
+   http://localhost:5000
+   ```
 
 ## 📊 Dashboard Components
 
 ### Summary Cards
-- **Total Slots**: Overall inventory capacity
+- **Total Slots**: Overall inventory count
 - **Booked**: Currently booked slots
-- **On Hold**: Slots on hold
-- **Available**: Available slots for booking
+- **On Hold**: Slots on hold status
+- **Available**: Available for booking
 
-### Brand Overview Table
-- Detailed breakdown by brand
-- Shows total, booked, available, and on-hold slots
-- Real-time data from database
+### Filters
+- **Product Filter**: Newsletter Sponsorship, Mailshot, Live Broadcast
+- **Brand Filter**: AA, BG, CFO, GT, HRD
+- **Date Range**: Custom date range selection
 
-### Utilization Chart
-- Interactive doughnut chart
-- Visual representation of slot utilization
-- Color-coded by status
+### Data Tables
+- **Filtered Inventory Results**: Detailed slot information with client data
+- **Upcoming Deliverables**: Next 2 weeks of scheduled deliverables
 
-### Recent Bookings
-- Latest 10 bookings from campaign ledger
-- Shows client, product, brand, dates, and status
+## 🎨 Technologies Used
 
-## 🛠️ Technology Stack
-
-- **Backend**: Python Flask
-- **Database**: PostgreSQL with psycopg2
-- **Frontend**: HTML, CSS (Tailwind), JavaScript
-- **Charts**: Chart.js
-- **Deployment**: Ready for Render/Railway/Heroku
-
-## 📋 Requirements
-
-- Python 3.8+
-- PostgreSQL database
-- Required Python packages (see requirements.txt)
-
-## 🚀 Quick Start
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Configure Database
-Update the database configuration in `simple_dashboard.py`:
-```python
-DB_CONFIG = {
-    'host': 'your-database-host',
-    'port': 5432,
-    'database': 'your-database-name',
-    'user': 'your-username',
-    'password': 'your-password'
-}
-```
-
-### 3. Run the Dashboard
-```bash
-python simple_dashboard.py
-```
-
-### 4. Access Dashboard
-Open your browser and go to: `http://localhost:5000`
-
-## 🧪 Testing
-
-Run the comprehensive test suite:
-```bash
-python comprehensive_test.py
-```
-
-This will test:
-- Database connection
-- Dashboard page loading
-- API endpoints
-- Data integrity
-- Performance
-- Real-time data updates
-
-## 📡 API Endpoints
-
-### GET /api/inventory
-Returns summary data for all brands:
-```json
-[
-  {
-    "brand": "Accountancy Age",
-    "total_slots": 3363,
-    "booked": 222,
-    "available": 3078,
-    "on_hold": 23,
-    "unclassified": 40
-  }
-]
-```
-
-### GET /api/bookings
-Returns recent bookings:
-```json
-[
-  {
-    "client": "Client Name",
-    "product": "Product Name",
-    "brand": "Brand Name",
-    "start_date": "2025-01-01",
-    "end_date": "2025-01-31",
-    "status": "Active"
-  }
-]
-```
-
-## 🗄️ Database Schema
-
-The dashboard connects to PostgreSQL tables:
-- `campaign_metadata.aa_inventory` - Accountancy Age inventory
-- `campaign_metadata.bob_inventory` - Bobsguide inventory
-- `campaign_metadata.cfo_inventory` - The CFO inventory
-- `campaign_metadata.gt_inventory` - Global Treasurer inventory
-- `campaign_metadata.hrd_inventory` - HRD Connect inventory
-- `campaign_metadata.campaign_ledger` - Campaign bookings
-
-## 🚀 Deployment
-
-### Render (Recommended)
-1. Connect your GitHub repository
-2. Set build command: `pip install -r requirements.txt`
-3. Set start command: `gunicorn simple_dashboard:app`
-4. Add environment variables if needed
-
-### Railway
-1. Connect your repository
-2. Railway will auto-detect Python
-3. Set start command: `gunicorn simple_dashboard:app`
-
-### Heroku
-1. Create a new Heroku app
-2. Connect your repository
-3. Add PostgreSQL addon
-4. Deploy
-
-## 📈 Performance
-
-- **Response Time**: ~3-4 seconds for full dashboard load
-- **Auto-refresh**: Every 30 seconds
-- **Database Queries**: Optimized with proper indexing
-- **Caching**: Built-in browser caching for static assets
+- **Frontend**: HTML5, CSS3 (Tailwind CSS), JavaScript (ES6+)
+- **Backend**: Python Flask (for local development)
+- **Database**: PostgreSQL (AWS RDS)
+- **Deployment**: GitHub Pages (static), Render (Flask)
 
 ## 🔧 Configuration
 
+### Database Connection
+The Flask backend connects to a PostgreSQL database with the following configuration:
+- Host: AWS RDS instance
+- Database: Analytics
+- Tables: campaign_metadata schema
+
 ### Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string
-- `FLASK_ENV`: Set to 'production' for deployment
+For local development, ensure your database credentials are properly configured in `simple_dashboard.py`.
 
-### Customization
-- Modify `HTML_TEMPLATE` in `simple_dashboard.py` for UI changes
-- Update database queries for different data requirements
-- Adjust auto-refresh interval in the JavaScript section
+## 📱 Responsive Design
 
-## 🐛 Troubleshooting
+The dashboard is fully responsive and optimized for:
+- **Desktop**: Full feature set with side-by-side layouts
+- **Tablet**: Adaptive grid layouts
+- **Mobile**: Stacked layouts with touch-friendly controls
 
-### Common Issues
+## 🔄 Auto-refresh
 
-1. **Database Connection Failed**
-   - Check database credentials
-   - Verify network connectivity
-   - Ensure database is running
+The dashboard automatically refreshes data every 30 seconds to ensure real-time information. In the static version, this updates the timestamp and would fetch new data in a production environment.
 
-2. **Dashboard Not Loading**
-   - Check if Flask server is running
-   - Verify port 5000 is available
-   - Check browser console for errors
+## 🚀 Deployment
 
-3. **Data Not Updating**
-   - Verify database has recent data
-   - Check auto-refresh is enabled
-   - Clear browser cache
+### GitHub Pages (Current)
+The static version is automatically deployed to GitHub Pages when changes are pushed to the main branch.
 
-### Debug Mode
-Run with debug mode for detailed error messages:
-```python
-app.run(debug=True, port=5000)
-```
+### Custom Deployment
+For custom deployment:
+1. Build the static files
+2. Upload to your web server
+3. Configure your domain
 
-## 📝 License
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
 
 This project is proprietary and confidential.
 
-## 🤝 Support
+## 📞 Support
 
-For technical support or questions, contact the development team.
+For support or questions, please contact the development team.
 
 ---
 
-**Last Updated**: August 15, 2025
-**Version**: 1.0.0
-**Status**: ✅ Production Ready
+**Last Updated**: January 2025
+**Version**: 2.0.0
