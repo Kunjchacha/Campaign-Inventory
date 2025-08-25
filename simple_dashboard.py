@@ -38,15 +38,15 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         if start_date and end_date:
             base_where += f' AND "Dates" >= \'{start_date}\' AND "Dates" <= \'{end_date}\''
         
-        # Get summary from all inventory tables
+        # Get summary from all inventory tables - using DISTINCT for accurate counting
         query = f"""
         SELECT 
             'Accountancy Age' as brand,
-            COUNT(*) as total_slots,
-            COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
-            COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
-            COUNT(CASE WHEN "Booked/Not Booked" = 'Hold' THEN 1 END) as on_hold,
-            COUNT(CASE WHEN "Booked/Not Booked" IS NULL OR "Booked/Not Booked" NOT IN ('Booked', 'Not Booked', 'Hold') THEN 1 END) as unclassified
+            COUNT(DISTINCT "ID") as total_slots,
+            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Booked' THEN "ID" END) as booked,
+            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN "ID" END) as available,
+            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Hold' THEN "ID" END) as on_hold,
+            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" IS NULL OR "Booked/Not Booked" NOT IN ('Booked', 'Not Booked', 'Hold') THEN "ID" END) as unclassified
         FROM campaign_metadata.aa_inventory
         {base_where}
         """
@@ -231,9 +231,9 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                 if brand_code != expected_brand_code:
                     continue
                 
-            # Build query for this brand table
+            # Build query for this brand table - using DISTINCT to eliminate duplicates
             query = f"""
-            SELECT 
+            SELECT DISTINCT ON ("ID")
                 "ID" as slot_id,
                 "Dates" as slot_date,
                 "Booked/Not Booked" as status,
@@ -242,6 +242,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                 '{brand_code}' as brand
             FROM campaign_metadata.{table_name}
             WHERE "ID" >= 8000
+            ORDER BY "ID", "Dates" DESC
             """
             
             # Add date filter if specified - now properly implemented
