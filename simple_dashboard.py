@@ -242,7 +242,6 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                 '{brand_code}' as brand
             FROM campaign_metadata.{table_name}
             WHERE "ID" >= 8000
-            ORDER BY "ID", "Dates" DESC
             """
             
             # Add date filter if specified - now properly implemented
@@ -311,6 +310,9 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                 
                 db_product_name = product_mapping.get(product_filter, product_filter)
                 query += f" AND \"Media_Asset\" = '{db_product_name}'"
+            
+            # Add ORDER BY clause for DISTINCT ON
+            query += " ORDER BY \"ID\", \"Dates\" DESC"
             
             print(f"Executing query for {table_name}: {query}")
             cursor.execute(query)
