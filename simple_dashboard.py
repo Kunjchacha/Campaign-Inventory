@@ -295,10 +295,21 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             
             # Add product filter if specified
             if product_filter:
-                if product_filter == 'Mailshot':
-                    query += " AND \"Media_Asset\" = 'Mailshot'"
-                elif product_filter == 'Newsletter Sponsorship':
-                    query += " AND \"Media_Asset\" = 'Newsletter Sponsorship'"
+                # Map frontend product names to database product names
+                product_mapping = {
+                    'Hosted_Content': 'Hosted_Content',
+                    'LVB_Mailshot': 'LVB_Mailshot',
+                    'Leading_Voice_Broadcast': 'Leading_Voice_Broadcast',
+                    'Mailshot': 'Mailshot',
+                    'Newsletter_Category_Sponsorship': 'Newsletter_Category_Sponsorship',
+                    'Newsletter_Featured_Placement': 'Newsletter_Featured_Placement',
+                    'Newsletter_Sponsorship': 'Newsletter_Sponsorship',
+                    'Original_Content_Production': 'Original_Content_Production',
+                    'Weekender_Newsletter_Sponsorship': 'Weekender_Newsletter_Sponsorship'
+                }
+                
+                db_product_name = product_mapping.get(product_filter, product_filter)
+                query += f" AND \"Media_Asset\" = '{db_product_name}'"
             
             print(f"Executing query for {table_name}: {query}")
             cursor.execute(query)
