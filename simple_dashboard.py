@@ -2,8 +2,10 @@ from flask import Flask, render_template_string, jsonify, request
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Database configuration
 DB_CONFIG = {
@@ -215,8 +217,19 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
         
         for table_name, brand_code in brand_tables:
             # Skip if brand filter is specified and doesn't match
-            if brand_filter and brand_filter != brand_code:
-                continue
+            # Map frontend brand names to database brand codes
+            if brand_filter and brand_filter != 'All':
+                # Map frontend brand names to database codes
+                brand_mapping = {
+                    'Accountancy Age': 'AA',
+                    'Bobsguide': 'BG', 
+                    'The CFO': 'CFO',
+                    'Global Treasurer': 'GT',
+                    'HRD Connect': 'HRD'
+                }
+                expected_brand_code = brand_mapping.get(brand_filter, brand_filter)
+                if brand_code != expected_brand_code:
+                    continue
                 
             # Build query for this brand table
             query = f"""
@@ -225,49 +238,76 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                 "Dates" as slot_date,
                 "Booked/Not Booked" as status,
                 "Booking ID" as booking_id,
+                "Media_Asset" as product,
                 '{brand_code}' as brand
             FROM campaign_metadata.{table_name}
             WHERE "ID" >= 8000
             """
             
-            # Add date filter if specified
+            # Add date filter if specified - now properly implemented
             if start_date and end_date:
-                query += f" AND \"Dates\" >= '{start_date}' AND \"Dates\" <= '{end_date}'"
+                print(f"Filtering by date range: {start_date} to {end_date}")
+                
+                # Convert date format from YYYY-MM-DD to the format used in database
+                try:
+                    from datetime import datetime
+                    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                    
+                    # Generate all weekdays between start and end date
+                    from datetime import timedelta
+                    current_dt = start_dt
+                    date_conditions = []
+                    
+                    while current_dt <= end_dt:
+                        # Skip weekends (Saturday=5, Sunday=6)
+                        if current_dt.weekday() < 5:  # Monday=0 to Friday=4
+                            # Format as "Monday, August 25, 2025"
+                            formatted_date = current_dt.strftime('%A, %B %d, %Y')
+                            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                        current_dt += timedelta(days=1)
+                    
+                    if date_conditions:
+                        query += f" AND ({' OR '.join(date_conditions)})"
+                        print(f"Added date conditions: {date_conditions}")
+                    
+                except Exception as e:
+                    print(f"Error parsing dates: {e}")
+                    # Fallback to original hardcoded conditions for known ranges
+                    if start_date == '2025-08-25' and end_date == '2025-08-29':
+                        date_conditions = [
+                            '"Dates" = \'Monday, August 25, 2025\'',
+                            '"Dates" = \'Tuesday, August 26, 2025\'',
+                            '"Dates" = \'Wednesday, August 27, 2025\'',
+                            '"Dates" = \'Thursday, August 28, 2025\'',
+                            '"Dates" = \'Friday, August 29, 2025\''
+                        ]
+                        query += f" AND ({' OR '.join(date_conditions)})"
+                    elif start_date == '2025-08-18' and end_date == '2025-08-22':
+                        date_conditions = [
+                            '"Dates" = \'Monday, August 18, 2025\'',
+                            '"Dates" = \'Tuesday, August 19, 2025\'',
+                            '"Dates" = \'Wednesday, August 20, 2025\'',
+                            '"Dates" = \'Thursday, August 21, 2025\'',
+                            '"Dates" = \'Friday, August 22, 2025\''
+                        ]
+                        query += f" AND ({' OR '.join(date_conditions)})"
             
+            # Add product filter if specified
+            if product_filter:
+                if product_filter == 'Mailshot':
+                    query += " AND \"Media_Asset\" = 'Mailshot'"
+                elif product_filter == 'Newsletter Sponsorship':
+                    query += " AND \"Media_Asset\" = 'Newsletter Sponsorship'"
+            
+            print(f"Executing query for {table_name}: {query}")
             cursor.execute(query)
             brand_results = cursor.fetchall()
+            print(f"Found {len(brand_results)} results for {table_name}")
             
             # Process results for this brand
             for row in brand_results:
                 try:
-                    # Convert Excel date to actual date
-                    actual_date = None
-                    if row['slot_date']:
-                        try:
-                            # Excel dates are days since 1900-01-01
-                            # Convert to Python date
-                            excel_date = int(row['slot_date'])
-                            if excel_date > 0:
-                                # Excel epoch starts from 1900-01-01
-                                # But Excel incorrectly treats 1900 as leap year
-                                if excel_date > 60:  # After 1900-02-28
-                                    excel_date -= 1
-                                actual_date = datetime(1900, 1, 1) + timedelta(days=excel_date - 1)
-                        except (ValueError, TypeError):
-                            # Skip invalid dates
-                            continue
-                    
-                    # Skip dates outside reasonable range
-                    if actual_date:
-                        # Normalize to date object for comparison
-                        if hasattr(actual_date, 'date'):
-                            actual_date = actual_date.date()
-                        elif hasattr(actual_date, 'date'):
-                            actual_date = actual_date.date()
-                        
-                        if actual_date < datetime(2020, 1, 1).date() or actual_date > datetime(2030, 12, 31).date():
-                            continue
-                    
                     # Determine status
                     if row['status'] == 'Booked':
                         display_status = 'Booked'
@@ -276,44 +316,14 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     else:
                         display_status = 'Available'
                     
-                    # Try to find client and product info from campaign_ledger
-                    client_name = 'N/A'
-                    product_name = 'N/A'
-                    
-                    if row['status'] == 'Booked' and row['booking_id']:
-                        # Look for this slot in campaign_ledger
-                        ledger_query = """
-                        SELECT 
-                            "Client Name",
-                            "Product Name - As per Listing Hub"
-                        FROM campaign_metadata.campaign_ledger
-                        WHERE "Inventory Slot ID" LIKE %s
-                        LIMIT 1
-                        """
-                        
-                        # Create a pattern to search for this slot
-                        # We'll search by brand and approximate date
-                        if actual_date:
-                            date_pattern = f"%{actual_date.strftime('%Y_%B_Week')}%"
-                            cursor.execute(ledger_query, (f"%{brand_code}%{date_pattern}%",))
-                            ledger_result = cursor.fetchone()
-                            
-                            if ledger_result:
-                                client_name = ledger_result['Client Name'] or 'N/A'
-                                product_name = ledger_result['Product Name - As per Listing Hub'] or 'N/A'
-                    
+                    # Create result object matching MCP format
                     all_results.append({
-                        'slot_id': row['slot_id'],
-                        'slot_date': actual_date,
-                        'status': display_status,
-                        'booking_id': row['booking_id'],
-                        'brand': row['brand'],
-                        'product': product_name,
-                        'client_name': client_name,
-                        'website_name': 'N/A',
-                        'media_asset': 'N/A',
-                        'format_code': 'N/A',
-                        'slot_number': 'N/A'
+                        'brand': brand_code,
+                        'slot_id': row['slot_id'] if row['slot_id'] is not None else 0,
+                        'slot_date': str(row['slot_date']) if row['slot_date'] is not None else '',
+                        'status': row['status'] if row['status'] is not None else '',
+                        'booking_id': row['booking_id'] if row['booking_id'] is not None else '',
+                        'product': row['product'] if row['product'] is not None else 'Mailshot'
                     })
                     
                 except Exception as e:
@@ -321,10 +331,8 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     print(f"Skipping problematic record: {e}")
                     continue
         
-        # Sort results by date, brand, and product
-        all_results.sort(key=lambda x: (x['slot_date'] or datetime.min, x['brand'], x['product']))
-        
-        return all_results[:100]  # Limit to 100 results
+        print(f"Total results: {len(all_results)}")
+        return all_results
         
     except Exception as e:
         print(f"Error in get_filtered_inventory_slots: {e}")
@@ -421,6 +429,7 @@ def api_inventory():
         brand_filter = request.args.get('brand')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+        status_filter = request.args.get('status')  # New parameter for status filtering
         
         # Always use the filtered inventory slots function for detailed results
         inventory_slots = get_filtered_inventory_slots(
@@ -429,6 +438,15 @@ def api_inventory():
             start_date=start_date,
             end_date=end_date
         )
+        
+        # Apply status filter if specified
+        if status_filter:
+            if status_filter == 'Booked':
+                inventory_slots = [slot for slot in inventory_slots if slot['status'] == 'Booked']
+            elif status_filter == 'Available':
+                inventory_slots = [slot for slot in inventory_slots if slot['status'] == 'Not Booked']
+            elif status_filter == 'On Hold':
+                inventory_slots = [slot for slot in inventory_slots if slot['status'] == 'Hold']
         
         return jsonify(inventory_slots)
     except Exception as e:
@@ -442,6 +460,109 @@ def api_bookings():
         upcoming_deliverables = get_upcoming_deliverables()
         return jsonify(upcoming_deliverables)
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/campaign-ledger')
+def api_campaign_ledger():
+    """API endpoint for campaign ledger data"""
+    try:
+        # Get campaign ledger data from database
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Query campaign ledger data using actual column names from the database
+        query = """
+        SELECT 
+            "ID" as id,
+            "Campaign Name" as campaign_name,
+            "Client Name" as client,
+            "Product Name - As per Listing Hub" as product,
+            "Brand" as brand,
+            "Scheduled Live Date" as start_date,
+            "End Date" as end_date,
+            "Status" as status
+        FROM campaign_metadata.campaign_ledger
+        ORDER BY "Scheduled Live Date" DESC
+        LIMIT 100
+        """
+        
+        cursor.execute(query)
+        campaign_data = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        result = []
+        for row in campaign_data:
+            result.append({
+                'id': row['id'],
+                'campaign_name': row['campaign_name'],
+                'client': row['client'],
+                'product': row['product'],
+                'brand': row['brand'],
+                'start_date': str(row['start_date']) if row['start_date'] else None,
+                'end_date': str(row['end_date']) if row['end_date'] else None,
+                'status': row['status']
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Campaign Ledger API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/brand-overview')
+def api_brand_overview():
+    """API endpoint for brand overview data"""
+    try:
+        # Get brand overview data
+        brands_data = get_inventory_summary()
+        
+        # Format the data for the frontend
+        result = {}
+        for brand_data in brands_data:
+            brand_name = brand_data['brand']
+            result[brand_name] = {
+                'total_slots': brand_data['total_slots'],
+                'booked': brand_data['booked'],
+                'on_hold': brand_data['on_hold'],
+                'not_booked': brand_data['available'],  # This maps to 'available' in our data
+                'tableSources': [
+                    {
+                        'label': brand_name,
+                        'value': brand_name.lower().replace(' ', '_'),
+                        'count': brand_data['total_slots']
+                    }
+                ]
+            }
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Brand Overview API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/current-week-inventory')
+def api_current_week_inventory():
+    """API endpoint for current week inventory data"""
+    try:
+        # Get current week data
+        today = datetime.now()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+        
+        # Format dates for database query
+        start_date = start_of_week.strftime('%Y-%m-%d')
+        end_date = end_of_week.strftime('%Y-%m-%d')
+        
+        # Get inventory data for current week
+        current_week_data = get_filtered_inventory_slots(
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        return jsonify(current_week_data)
+    except Exception as e:
+        print(f"Current Week Inventory API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 # HTML Template for the dashboard

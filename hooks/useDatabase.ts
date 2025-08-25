@@ -3,7 +3,7 @@ import type { DatabaseInventoryItem, CampaignLedgerItem } from '../types';
 
 // Backend API URL - configurable for different environments
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://campaign-inventory-api.onrender.com/api'  // Update this with your actual deployed backend URL
+  ? 'http://localhost:5000/api'  // Temporarily use local backend for testing
   : 'http://localhost:5000/api';
 
 
@@ -11,6 +11,10 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 
 
 export const useDatabase = () => {
+  console.log('🔧 useDatabase hook is being called!');
+  console.log('🔧 This is the UPDATED version of useDatabase!');
+  alert('🔧 useDatabase hook is being called! - This should show if the hook is working');
+  
   const [inventoryData, setInventoryData] = useState<DatabaseInventoryItem[]>([]);
   const [campaignLedger, setCampaignLedger] = useState<CampaignLedgerItem[]>([]);
   const [brandOverview, setBrandOverview] = useState<{[key: string]: any}>({});
@@ -27,6 +31,7 @@ export const useDatabase = () => {
     
     try {
       console.log('Fetching consolidated inventory data from backend API...');
+      console.log('API URL:', `${API_BASE_URL}/inventory`);
       const response = await fetch(`${API_BASE_URL}/inventory`);
       
       if (!response.ok) {
@@ -35,6 +40,7 @@ export const useDatabase = () => {
       
       const data = await response.json();
       console.log(`Fetched ${data.length} consolidated inventory items from database`);
+      console.log('Sample data:', data.slice(0, 3)); // Log first 3 items
       
       setInventoryData(data);
       setIsUsingFallback(false);
@@ -105,7 +111,7 @@ export const useDatabase = () => {
     setError(null);
     
     try {
-      console.log('Fetching consolidated inventory data from backend API...');
+      console.log('Fetching preview data from backend API...');
       const params = new URLSearchParams({
         brand,
         product,
@@ -113,23 +119,27 @@ export const useDatabase = () => {
         ...(endDate && { end_date: endDate })
       });
       
+      const url = `${API_BASE_URL}/inventory?${params}`;
+      console.log('Preview data URL:', url);
+      
       // Use the consolidated inventory endpoint instead of preview-data
-      const response = await fetch(`${API_BASE_URL}/inventory?${params}`);
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log(`Fetched ${data.length} consolidated inventory items from database`);
+      console.log(`Fetched ${data.length} preview items from database`);
+      console.log('Preview sample data:', data.slice(0, 3)); // Log first 3 items
       
       setPreviewData(data);
       setIsUsingFallback(false);
     } catch (err) {
-      console.error('Error fetching consolidated inventory data:', err);
+      console.error('Error fetching preview data:', err);
       setPreviewData([]);
       setIsUsingFallback(false);
-      setError('Failed to fetch consolidated inventory data from backend.');
+      setError('Failed to fetch preview data from backend.');
     } finally {
       setIsLoading(false);
     }
@@ -164,6 +174,7 @@ export const useDatabase = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
+    console.log('🚀 fetchData is being called!');
     await Promise.all([
       fetchInventoryData(),
       fetchCampaignLedger(),
