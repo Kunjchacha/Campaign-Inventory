@@ -1,118 +1,185 @@
-# Campaign Inventory Dashboard
+# 📊 Campaign Inventory Dashboard
 
-A modern, responsive dashboard for tracking campaign inventory across multiple brands and products. Built with HTML, CSS (Tailwind), and JavaScript for seamless deployment on GitHub Pages.
+A real-time inventory tracking dashboard for campaign management across multiple brands.
 
-## 🚀 Live Demo
+## 🚀 Features
 
-Visit the live dashboard: [Campaign Inventory Dashboard](https://Kunjchacha.github.io/Campaign-Inventory)
+### ✅ **Enhanced Dashboard Features:**
+- **📈 Brand Overview**: Static overview showing booking percentages for all brands
+- **🔍 Advanced Filtering**: Filter by Product, Brand, Date Range, and Status
+- **📊 Real-time Data**: Live data from PostgreSQL database
+- **🎯 Two-Stage Filtering**: Initial filters + additional status filtering
+- **📱 Responsive Design**: Works on desktop and mobile devices
 
-## ✨ Features
+### 📋 **Available Products:**
+- Hosted Content
+- LVB Mailshot
+- Leading Voice Broadcast
+- Mailshot
+- Newsletter Category Sponsorship
+- Newsletter Featured Placement
+- Newsletter Sponsorship
+- Original Content Production
+- Weekender Newsletter Sponsorship
 
-- **Real-time Inventory Tracking**: Monitor available, booked, and on-hold slots across all brands
-- **Advanced Filtering**: Filter by product, brand, and date range
-- **Upcoming Deliverables**: View next 2 weeks of scheduled deliverables
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- **Modern UI**: Clean, professional interface with smooth animations
-- **Auto-refresh**: Automatically updates data every 30 seconds
+### 🏢 **Supported Brands:**
+- Accountancy Age (AA)
+- Bobsguide (BG)
+- The CFO (CFO)
+- Global Treasurer (GT)
+- HRD Connect (HRD)
 
-## 🏗️ Project Structure
+## 🛠️ Setup Instructions
 
-```
-campaign-inventory/
-├── index.html              # Main dashboard (GitHub Pages)
-├── simple_dashboard.py     # Flask backend (local development)
-├── requirements.txt        # Python dependencies
-├── package.json           # Node.js dependencies (React app)
-├── README.md              # This file
-└── .gitignore            # Git ignore rules
-```
+### **Backend Setup (Flask API):**
 
-## 🚀 Quick Start
-
-### For GitHub Pages (Static Version)
-The dashboard is automatically deployed to GitHub Pages and available at:
-```
-https://Kunjchacha.github.io/Campaign-Inventory
-```
-
-### For Local Development (Flask Backend)
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Kunjchacha/Campaign-Inventory.git
-   cd Campaign-Inventory
-   ```
-
-2. **Install Python dependencies**:
+1. **Install Dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the Flask application**:
+2. **Database Configuration:**
+   - Ensure PostgreSQL database is running
+   - Update database connection in `simple_dashboard.py`
+
+3. **Start Flask Server:**
    ```bash
    python simple_dashboard.py
    ```
+   - Server runs on: `http://localhost:5000`
 
-4. **Open your browser** and navigate to:
-   ```
-   http://localhost:5000
-   ```
+### **Frontend Setup:**
 
-## 📊 Dashboard Components
+1. **Local Development:**
+   - Open `index.html` in your browser
+   - Or use a local server: `python -m http.server 8000`
 
-### Summary Cards
-- **Total Slots**: Overall inventory count
-- **Booked**: Currently booked slots
-- **On Hold**: Slots on hold status
-- **Available**: Available for booking
+2. **GitHub Pages Deployment:**
+   - Push to GitHub repository
+   - Enable GitHub Pages in repository settings
+   - Access at: `https://kunjchacha.github.io/Campaign-Inventory/`
 
-### Filters
-- **Product Filter**: Newsletter Sponsorship, Mailshot, Live Broadcast
-- **Brand Filter**: AA, BG, CFO, GT, HRD
-- **Date Range**: Custom date range selection
+## 📡 API Endpoints
 
-### Data Tables
-- **Filtered Inventory Results**: Detailed slot information with client data
-- **Upcoming Deliverables**: Next 2 weeks of scheduled deliverables
+### **Main Inventory Endpoint:**
+```
+GET /api/inventory
+```
 
-## 🎨 Technologies Used
+**Query Parameters:**
+- `product`: Filter by product type
+- `brand`: Filter by brand (AA, BG, CFO, GT, HRD)
+- `start_date`: Start date (YYYY-MM-DD)
+- `end_date`: End date (YYYY-MM-DD)
+- `status`: Filter by status (Booked, Available, On Hold)
 
-- **Frontend**: HTML5, CSS3 (Tailwind CSS), JavaScript (ES6+)
-- **Backend**: Python Flask (for local development)
-- **Database**: PostgreSQL (AWS RDS)
-- **Deployment**: GitHub Pages (static), Render (Flask)
+**Example:**
+```
+GET /api/inventory?product=Mailshot&brand=AA&start_date=2025-08-25&end_date=2025-08-29&status=Booked
+```
 
-## 🔧 Configuration
+### **Other Endpoints:**
+- `GET /api/campaign-ledger`: Campaign ledger data
+- `GET /api/brand-overview`: Brand overview statistics
+- `GET /api/current-week-inventory`: Current week inventory
 
-### Database Connection
-The Flask backend connects to a PostgreSQL database with the following configuration:
-- Host: AWS RDS instance
-- Database: Analytics
-- Tables: campaign_metadata schema
+## 🎯 Usage Guide
 
-### Environment Variables
-For local development, ensure your database credentials are properly configured in `simple_dashboard.py`.
+### **1. View Brand Overview:**
+- The top section shows booking percentages for all brands
+- Color-coded: Green (≥70%), Yellow (40-69%), Red (<40%)
+- Updates on page refresh
 
-## 📱 Responsive Design
+### **2. Apply Filters:**
+- **Product**: Select specific product type
+- **Brand**: Choose specific brand
+- **Date Range**: Set start and end dates
+- **Search**: Click "Search" to apply filters
 
-The dashboard is fully responsive and optimized for:
-- **Desktop**: Full feature set with side-by-side layouts
-- **Tablet**: Adaptive grid layouts
-- **Mobile**: Stacked layouts with touch-friendly controls
+### **3. Further Filter Results:**
+- After getting initial results, use the "Further Filter Results" section
+- **Status Filter**: Filter by Booked, Available, or On Hold
+- **Apply**: Click "Filter by Status" to refine results
 
-## 🔄 Auto-refresh
+### **4. Reset Filters:**
+- Click "Reset" to clear all filters
+- Click "Clear Status Filter" to clear only status filter
 
-The dashboard automatically refreshes data every 30 seconds to ensure real-time information. In the static version, this updates the timestamp and would fetch new data in a production environment.
+## 🔧 Technical Details
+
+### **Frontend:**
+- **HTML5** with **Tailwind CSS**
+- **Vanilla JavaScript** (no framework dependencies)
+- **Responsive design** for all screen sizes
+
+### **Backend:**
+- **Python Flask** API
+- **PostgreSQL** database with psycopg2
+- **CORS enabled** for cross-origin requests
+
+### **Database Schema:**
+- Tables: `aa_inventory`, `bob_inventory`, `cfo_inventory`, `gt_inventory`, `hrd_inventory`
+- Schema: `campaign_metadata`
+- Key columns: `ID`, `Dates`, `Booked/Not Booked`, `Booking ID`, `Media_Asset`
 
 ## 🚀 Deployment
 
-### GitHub Pages (Current)
-The static version is automatically deployed to GitHub Pages when changes are pushed to the main branch.
+### **GitHub Pages:**
+1. Push code to GitHub repository
+2. Go to Settings → Pages
+3. Select source: "Deploy from a branch"
+4. Choose branch: `main`
+5. Access URL: `https://kunjchacha.github.io/Campaign-Inventory/`
 
-### Custom Deployment
-For custom deployment:
-1. Build the static files
-2. Upload to your web server
-3. Configure your domain
+### **Backend Deployment (Optional):**
+- Deploy Flask app to Render.com, Heroku, or similar
+- Update `API_BASE` URL in `index.html`
+- Ensure CORS allows GitHub Pages domain
+
+## 📊 Data Flow
+
+1. **Page Load**: Fetches overview data and initial inventory data
+2. **Filter Application**: Sends filter parameters to API
+3. **Status Filtering**: Client-side filtering of results
+4. **Real-time Updates**: Data refreshes on filter changes
+
+## 🔍 Troubleshooting
+
+### **Common Issues:**
+
+1. **"Error loading data"**
+   - Check if Flask server is running
+   - Verify database connection
+   - Check browser console for errors
+
+2. **"CORS Error"**
+   - Ensure Flask-CORS is installed
+   - Check CORS configuration in `simple_dashboard.py`
+
+3. **"No results found"**
+   - Verify date format (YYYY-MM-DD)
+   - Check product/brand names match exactly
+   - Ensure database has data for selected filters
+
+### **Debug Mode:**
+- Open browser developer tools (F12)
+- Check Console tab for API calls and errors
+- Check Network tab for request/response details
+
+## 📝 Recent Updates
+
+### **v2.0 - Enhanced Dashboard:**
+- ✅ Added Brand Overview section
+- ✅ Expanded product dropdown (9 products)
+- ✅ Added status filtering below results
+- ✅ Improved UI/UX design
+- ✅ GitHub Pages deployment ready
+
+### **v1.0 - Basic Dashboard:**
+- ✅ Basic filtering functionality
+- ✅ Real-time data display
+- ✅ Date range filtering
+- ✅ Product and brand filtering
 
 ## 🤝 Contributing
 
@@ -122,15 +189,16 @@ For custom deployment:
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
-
-This project is proprietary and confidential.
-
 ## 📞 Support
 
-For support or questions, please contact the development team.
+For issues or questions:
+1. Check the troubleshooting section
+2. Review browser console for errors
+3. Verify API endpoints are working
+4. Check database connectivity
 
 ---
 
-**Last Updated**: January 2025
-**Version**: 2.0.0
+**Last Updated**: August 25, 2025
+**Version**: 2.0
+**Status**: Production Ready ✅
