@@ -15,11 +15,17 @@ A real-time inventory tracking dashboard for campaign management across multiple
 - Hosted Content
 - LVB Mailshot
 - Leading Voice Broadcast
+- LinkedIn Social Media Post
+- LinkedIn Sponsor Placement
 - Mailshot
+- NIAB Event Coverage
 - Newsletter Category Sponsorship
 - Newsletter Featured Placement
 - Newsletter Sponsorship
+- Original Content Newsletter Feature Placement
 - Original Content Production
+- Press Release
+- Press Release Promotion Placement
 - Weekender Newsletter Sponsorship
 
 ### 🏢 **Supported Brands:**
